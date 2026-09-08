@@ -1,0 +1,16 @@
+body {
+  width: 220px;
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+.popup {
+  padding: 12px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+}

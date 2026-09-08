@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PhobiaSafeBrowsing Settings</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="options">
+      <h1>PhobiaSafeBrowsing Settings</h1>
+
+      <section>
+        <h2>Categories</h2>
+        <div id="categories"></div>
+      </section>
+
+      <section>
+        <h2>Sensitivity</h2>
+        <select id="sensitivity">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </section>
+
+      <section>
+        <h2>Allow list</h2>
+        <!-- TODO(settings-phase): render/edit ExtensionSettings.allowList -->
+        <div id="allow-list"></div>
+      </section>
+
+      <section>
+        <h2>Deny list</h2>
+        <!-- TODO(settings-phase): render/edit ExtensionSettings.denyList -->
+        <div id="deny-list"></div>
+      </section>
+    </main>
+    <script type="module" src="./index.ts"></script>
+  </body>
+</html>
