@@ -10,7 +10,7 @@ import { MessageType, sendMessage, type ClassifyImageResponse } from '../shared/
  * Once the offscreen ML worker exists, this will route through background.
  */
 
-const BLUR_CLASS = 'phobia-safe-browsing-blur'
+const BLUR_CLASS = 'calm-scroll-blur'
 
 async function classifyImage(imageUrl: string): Promise<boolean> {
   try {

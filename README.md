@@ -1,4 +1,4 @@
-# PhobiaSafeBrowsing
+# CalmScroll
 
 A Chrome extension (Manifest V3) that blurs images likely to trigger common
 phobias — spiders, snakes, insects, trypophobia, blood/gore, needles, clowns,
