@@ -121,7 +121,13 @@ async function handleClassify(
 }
 
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
-  if (message.type !== MessageType.ClassifyImageRequest) return false
+  // chrome.runtime.sendMessage broadcasts to every onMessage listener in the
+  // extension — this listener also sees the content script's original bare
+  // request (no `settings`) on its way to background, not just the message
+  // background actually relays here (with settings attached). Only handle
+  // the latter; otherwise this listener's near-instant "missing settings"
+  // response can win the race against background's slower, correct one.
+  if (message.type !== MessageType.ClassifyImageRequest || !message.settings) return false
   void handleClassify(message.imageUrl, message.settings).then((result) => {
     sendResponse({
       type: MessageType.ClassifyImageResponse,

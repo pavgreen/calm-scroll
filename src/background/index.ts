@@ -72,6 +72,15 @@ async function sendToOffscreenWithRetry(
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
   switch (message.type) {
     case MessageType.ClassifyImageRequest: {
+      // chrome.runtime.sendMessage broadcasts to every onMessage listener in
+      // the extension, not just an intended recipient — so the offscreen
+      // document's own listener also sees this SAME message on its way in
+      // from the content script, and background's OWN outgoing relay (with
+      // settings attached, below) loops back to this very listener too.
+      // `settings` presence discriminates: only messages WITHOUT it are
+      // genuine incoming content-script requests for background to handle;
+      // ones background already relayed (with settings) get ignored here.
+      if (message.settings) return false
       void (async () => {
         try {
           const settings = await getSettings()
