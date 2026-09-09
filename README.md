@@ -38,7 +38,7 @@ category text embeddings are all **generated, not committed to the repo**
 
 ```sh
 npm install                       # also vendors the WASM runtime via postinstall
-npm run icons:placeholder         # generates icons/*.png (zero deps, fully offline)
+npm run icons:generate            # generates icons/*.png (zero deps, fully offline)
 npm run models:fetch-vision       # downloads + vendors the ~45MB fp32 vision encoder
 npm run embeddings:precompute     # downloads the text encoder (~170MB, not kept),
                                    # writes the small category-embeddings.generated.json
@@ -76,7 +76,12 @@ extension card.
 npm run build
 ```
 
-Output goes to `dist/`; load that folder as an unpacked extension the same way.
+Output goes to `dist/`; load that folder as an unpacked extension the same
+way. A Vite plugin (`vite.config.ts`) prunes a ~23MB unused duplicate ONNX
+Runtime WASM binary that Rollup otherwise bundles as a side effect of
+following a reference inside `onnxruntime-web` — the extension always loads
+the WASM vendored separately at `public/ort/` instead (see
+`src/offscreen/index.ts`'s `wasmPaths` override).
 
 ## Typecheck / Lint / Format
 
@@ -100,22 +105,50 @@ setup above done first — see `tests/e2e/README.md`.
 
 ## Notes
 
-- `host_permissions: ["<all_urls>"]` in `manifest.json` is a conservative
-  placeholder for future `chrome.scripting` needs (e.g. re-injecting into
-  dynamically created iframes) — it is **not** required for the static
-  content script to run, since that's granted by its own `matches` field.
-  Revisit and narrow this before Chrome Web Store submission.
-- `icons/*.png` are generated placeholders (solid violet squares) — gitignored,
-  produced by `npm run icons:placeholder`
-  (`scripts/generate-placeholder-icons.mjs`, zero dependencies, fully
-  offline). Swap in real artwork before shipping.
-- **Known follow-ups**: (1) `npm run build` currently also bundles an unused
-  duplicate copy of the ONNX Runtime WASM binary as a Vite asset (~23MB dead
-  weight, separate from the correctly-vendored copy in `public/ort/` that's
-  actually used) — a build-config cleanup, not a functional bug. (2)
-  `SIMILARITY_THRESHOLD` in `src/shared/similarity.ts` is calibrated against
-  a handful of real images across 2 of 7 categories — broader validation is
-  recommended before relying on it. (3) Cross-origin image fetches that are
-  blocked by a host's own CORP/CSP headers fail silently to "not sensitive"
-  (see the catch block in `src/offscreen/index.ts`) rather than falling back
-  to any other signal.
+- `host_permissions: ["<all_urls>"]` in `manifest.json` is **not** a
+  placeholder — it's what lets the offscreen document's `fetch()` bypass
+  CORS when downloading an arbitrary page's images for classification.
+  Verified empirically: with this permission removed, a same-origin-friendly
+  host (Wikimedia, which sets a permissive CORS header) still classified
+  correctly, but per Chrome's own documented behavior, a host that doesn't
+  set `Access-Control-Allow-Origin` would have its images fail closed (stay
+  blurred forever, never actually classified) without it — see the
+  CORS/CORP follow-up below, which is the same underlying mechanism. Keep
+  this permission; when submitting to the Chrome Web Store, its permissions
+  justification field should say exactly this (not "future needs").
+- `icons/*.png` are generated (a calm sine wave in the brand violet,
+  `#7C3AED`) — gitignored, produced by `npm run icons:generate`
+  (`scripts/generate-icons.mjs`, zero dependencies, fully offline, no
+  third-party asset embedded).
+- **Known follow-ups**: (1) `SIMILARITY_THRESHOLD` in
+  `src/shared/similarity.ts` is calibrated against a handful of real images
+  across 2 of 7 categories — broader validation is recommended before
+  relying on it. (2) Cross-origin image fetches that are blocked by a
+  host's own CORP/CSP headers (or, per the host_permissions note above, by
+  CORS if that permission is ever narrowed) fail closed — the image stays
+  blurred forever rather than ever resolving to a real classification — see
+  the catch block in `src/offscreen/index.ts`.
+
+## Before submitting to the Chrome Web Store
+
+Not yet done, and blocking a real submission:
+
+- **Privacy Practices disclosure** — the dashboard requires an explicit
+  "does this extension collect user data" declaration and, given
+  `host_permissions: ["<all_urls>"]`, almost certainly a linked privacy
+  policy page even though the true answer is "no data leaves the device"
+  (`allowRemoteModels: false`, no analytics, no remote code — worth stating
+  plainly on that page).
+- **Per-permission justification text** — the dashboard requires a short
+  written justification for each of `storage`, `offscreen`, `contextMenus`,
+  and `host_permissions`. See the host_permissions note above for that one;
+  the other three are self-evident from their names.
+- **Single-purpose description** — a short listing description stating the
+  one thing this extension does (blur phobia-triggering images, on-device).
+  The `manifest.json` description is close but the store listing needs its
+  own, longer copy plus at least one screenshot (1280×800 or 640×400) and a
+  440×280 small promotional tile.
+- **Version bump** — `0.0.1` is fine for a first upload; every subsequent
+  upload needs a strictly higher `version`.
+- **Package for upload**: zip the _contents_ of `dist/` (not the `dist/`
+  folder itself) after `npm run build`.

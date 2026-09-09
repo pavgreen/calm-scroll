@@ -9,7 +9,7 @@ Not part of `npm test` (that's the fast, dependency-free unit suite in
 `tests/unit/`, run on every change). E2E is heavier and requires setup:
 
 ```sh
-npm run icons:placeholder
+npm run icons:generate
 npm run models:fetch-vision       # downloads + vendors the ~45MB fp32 vision encoder
 npm run embeddings:precompute     # downloads the text encoder (not kept), writes embeddings
 npm run build

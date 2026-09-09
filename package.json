@@ -12,7 +12,7 @@
     "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" vite.config.ts vitest.config.ts playwright.config.ts --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "icons:placeholder": "node scripts/generate-placeholder-icons.mjs",
+    "icons:generate": "node scripts/generate-icons.mjs",
     "models:fetch-vision": "node scripts/fetch-vision-model.mjs",
     "embeddings:precompute": "node scripts/precompute-embeddings.mjs",
     "postinstall": "node scripts/copy-onnxruntime-wasm.mjs",
