@@ -58,6 +58,49 @@ category scored _below_ a "neutral" baseline for every test image), and
 this model's architecture). fp32 is the only precision confirmed to work
 correctly here.
 
+## Model: upgrade / downsize considerations
+
+Researched in September 2026 as a check on whether `Xenova/mobileclip_s0`
+(11.4M-param vision encoder, ~45MB fp32) is still the right size/accuracy
+tradeoff. Conclusion: **no smaller model is worth switching to, but a
+same-size accuracy upgrade exists** if this gets revisited.
+
+- **Smaller, checked and rejected**: TinyCLIP (the main small-CLIP
+  distillation family) underperforms mobileclip_s0 at every comparable
+  size, per its own published benchmarks — its 22M-param variant (~2x our
+  size) only reaches 53.7% ImageNet zero-shot top-1 vs. our 67.8%, and even
+  its largest variant (63M params, ~5.5x our size) tops out at 64.5%, still
+  below what we already ship at a fraction of the size. Apple's MobileCLIP
+  training recipe (reinforced distillation from a strong teacher) is
+  specifically what lets S0 punch above its weight class; general-purpose
+  small-CLIP distillation doesn't match it at any size point checked.
+  SigLIP and standard CLIP ports (`Xenova/siglip-base-*`,
+  `Xenova/clip-vit-base-*`) are all meaningfully _larger_ than
+  mobileclip_s0 to begin with, so they weren't investigated further.
+- **Same size, real upgrade available**: Apple's 2025 follow-up,
+  MobileCLIP2, ships an S0 tier with the **exact same 11.4M-param vision
+  encoder** (same architecture, same latency class) but a better training
+  recipe — 71.5% ImageNet top-1 vs. our current 67.8% (+3.7pp), 59.7% vs.
+  58.1% averaged across 38 zero-shot benchmarks. Free accuracy at identical
+  footprint, which is a better fit for "don't sacrifice performance" than
+  any smaller model clears.
+- **Why not already switched**: the only transformers.js-ready ONNX export
+  of MobileCLIP2-S0 right now is a community conversion
+  ([`plhery/mobileclip2-onnx`](https://huggingface.co/plhery/mobileclip2-onnx)),
+  not the canonical Xenova/onnx-community namespace this project currently
+  vendors from — last updated mid-2025, packaged a bit roughly (committed
+  `.venv` folders alongside the weights). Its `config.json` declares
+  `model_type: "clip_vision_model"`, matching the `CLIPVisionModelWithProjection`
+  code path already in `src/offscreen/index.ts`, so it's likely
+  architecturally drop-in — but "drop-in" undersells the real work:
+  swapping models means redoing the same empirical validation this project
+  already did once for mobileclip_s0 (dtype tolerance — `uint8`
+  quantization silently collapsed this family's accuracy, `fp16` failed to
+  load outright, only `fp32` worked; WASM/offscreen compatibility) plus
+  recalibrating `SIMILARITY_THRESHOLD` and rerunning the full
+  category-accuracy suite from scratch, since thresholds are specific to
+  the exact embedding space of the model in use.
+
 ## Develop
 
 ```sh
