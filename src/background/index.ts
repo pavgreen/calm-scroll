@@ -12,7 +12,8 @@ import { DEFAULT_SETTINGS, type ExtensionSettings } from '../shared/categories'
 
 const SETTINGS_STORAGE_KEY = 'settings'
 const OFFSCREEN_URL = 'src/offscreen/index.html'
-const TOGGLE_BLUR_MENU_ID = 'calm-scroll-toggle-blur'
+const BLUR_MENU_ID = 'calm-scroll-blur-image'
+const DISPLAY_MENU_ID = 'calm-scroll-display-image'
 
 async function getSettings(): Promise<ExtensionSettings> {
   const stored = await chrome.storage.local.get(SETTINGS_STORAGE_KEY)
@@ -44,17 +45,31 @@ chrome.runtime.onInstalled.addListener(() => {
   void getSettings().then((settings) => saveSettings(settings))
   void warmUpIfEnabled()
 
-  // Right-click "Toggle blur" on any image, instead of a plain click on the
-  // image itself — avoids toggling by accident on what might just be a
-  // normal click (e.g. following a link). Chrome groups extension-added
-  // context menu items into their own section near the bottom of the
-  // native menu automatically; no positioning to configure on our end.
+  // Right-click actions on any image, instead of a plain click on the image
+  // itself — avoids triggering by accident on what might just be a normal
+  // click (e.g. following a link). Chrome groups extension-added context
+  // menu items into their own section near the bottom of the native menu
+  // automatically; no positioning to configure on our end.
+  //
+  // Two separate, always-visible items with a fixed effect each, rather
+  // than a single toggle: chrome.contextMenus.onShown (which would let the
+  // menu show only the relevant one, or relabel a single item, based on the
+  // image's actual current state) isn't available in the target Chrome
+  // version, and there's no other reliable way to know that state before
+  // the menu opens. Clicking the item that already matches the current
+  // state is just a harmless no-op.
+  //
   // removeAll() first: onInstalled also fires on extension update, and
   // create() with a pre-existing id throws "duplicate id" otherwise.
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id: TOGGLE_BLUR_MENU_ID,
-      title: 'Toggle CalmScroll blur',
+      id: BLUR_MENU_ID,
+      title: 'CalmScroll - Blur Image',
+      contexts: ['image'],
+    })
+    chrome.contextMenus.create({
+      id: DISPLAY_MENU_ID,
+      title: 'CalmScroll - Display Image',
       contexts: ['image'],
     })
   })
@@ -67,10 +82,14 @@ chrome.runtime.onStartup.addListener(() => {
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId !== TOGGLE_BLUR_MENU_ID || !tab?.id || !info.srcUrl) return
+  if (!tab?.id || !info.srcUrl) return
+  const blurred =
+    info.menuItemId === BLUR_MENU_ID ? true : info.menuItemId === DISPLAY_MENU_ID ? false : null
+  if (blurred === null) return
   void chrome.tabs.sendMessage(tab.id, {
-    type: MessageType.ToggleImageBlur,
+    type: MessageType.SetImageBlur,
     imageUrl: info.srcUrl,
+    blurred,
   })
 })
 
