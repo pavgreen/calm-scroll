@@ -14,6 +14,12 @@ const CLASSIFY_TIMEOUT_MS = 20000
 // them all simultaneously and late ones blow past the timeout waiting on
 // the single inference pipeline.
 const MAX_CONCURRENT_CLASSIFICATIONS = 4
+// Images at or below this size in either dimension are treated as icons/UI
+// chrome (nav buttons, logos, badges) rather than content, and are skipped
+// entirely — with every image blurred by default (see observeImage below),
+// NOT excluding these would make image-heavy site UI mostly blurred on
+// every page load for no safety benefit.
+const MIN_CONTENT_DIMENSION_PX = 32
 
 // Caches in-flight/completed classifications by URL so repeated <img> tags
 // pointing at the same asset (common for icons, avatars, tracking pixels)
@@ -40,7 +46,14 @@ function releaseSlot(): void {
   }
 }
 
-async function classifyImage(imageUrl: string): Promise<boolean> {
+/**
+ * Resolves to whether an image should stay blurred. Fails CLOSED: any
+ * classification error or timeout resolves true (stay blurred) rather than
+ * false — images are blurred by default until actively confirmed safe (see
+ * observeImage/applyBlurIfNeeded below), and an inability to classify is not
+ * a confirmation of safety.
+ */
+async function shouldStayBlurred(imageUrl: string): Promise<boolean> {
   const cached = classificationCache.get(imageUrl)
   if (cached) return cached
 
@@ -63,11 +76,10 @@ async function classifyImage(imageUrl: string): Promise<boolean> {
       ])
       return response.isSensitive
     } catch (err) {
-      // Fail safe: treat classification errors (offscreen/model failures,
-      // messaging errors, timeouts) as "not sensitive" rather than blocking
-      // the page — but still log, so failures are visible during development.
+      // Logged, not swallowed silently, so failures stay visible during
+      // development — but still resolves true (fail closed, see doc comment above).
       console.error('[calm-scroll/content] classification failed:', err)
-      return false
+      return true
     } finally {
       releaseSlot()
     }
@@ -84,13 +96,23 @@ function injectStyles(): void {
   document.documentElement.appendChild(style)
 }
 
+function isLikelyIcon(img: HTMLImageElement): boolean {
+  const width = img.width || img.naturalWidth
+  const height = img.height || img.naturalHeight
+  return (
+    width > 0 &&
+    width <= MIN_CONTENT_DIMENSION_PX &&
+    height > 0 &&
+    height <= MIN_CONTENT_DIMENSION_PX
+  )
+}
+
 function applyBlurIfNeeded(img: HTMLImageElement): void {
   const src = img.currentSrc || img.src
   if (!src) return
-  void classifyImage(src).then((isSensitive) => {
-    if (isSensitive) {
-      img.classList.add(BLUR_CLASS)
-      img.addEventListener('click', () => img.classList.toggle(BLUR_CLASS))
+  void shouldStayBlurred(src).then((staysBlurred) => {
+    if (!staysBlurred) {
+      img.classList.remove(BLUR_CLASS) // confirmed safe -> reveal
     }
   })
 }
@@ -115,7 +137,14 @@ const intersectionObserver = new IntersectionObserver(
 
 function observeImage(img: HTMLImageElement): void {
   if (observedImages.has(img)) return
+  if (isLikelyIcon(img)) return
   observedImages.add(img)
+  // Blur immediately, before classification even starts — not just once a
+  // match is confirmed — so a sensitive image is never shown unblurred
+  // while it's still waiting to be classified. Only lifted once
+  // shouldStayBlurred() confirms it's safe.
+  img.classList.add(BLUR_CLASS)
+  img.addEventListener('click', () => img.classList.toggle(BLUR_CLASS))
   intersectionObserver.observe(img)
 }
 
