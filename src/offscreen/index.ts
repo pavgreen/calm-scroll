@@ -7,7 +7,7 @@ import {
 import {
   MessageType,
   type ExtensionMessage,
-  type ClassifyImageRequest,
+  type OffscreenClassifyRequest,
   type ClassifyImageResponse,
 } from '../shared/messaging'
 import { PhobiaCategory } from '../shared/categories'
@@ -86,11 +86,8 @@ async function fetchImage(imageUrl: string): Promise<RawImage> {
 
 async function handleClassify(
   imageUrl: string,
-  settings: ClassifyImageRequest['settings'],
+  settings: OffscreenClassifyRequest['settings'],
 ): Promise<Omit<ClassifyImageResponse, 'type' | 'requestId'>> {
-  if (!settings) {
-    return { isSensitive: false, scores: {}, matchedCategories: [], error: 'missing settings' }
-  }
   try {
     modelPromise ??= loadModel()
     const [processor, model] = await modelPromise
@@ -121,13 +118,13 @@ async function handleClassify(
 }
 
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
-  // chrome.runtime.sendMessage broadcasts to every onMessage listener in the
-  // extension — this listener also sees the content script's original bare
-  // request (no `settings`) on its way to background, not just the message
-  // background actually relays here (with settings attached). Only handle
-  // the latter; otherwise this listener's near-instant "missing settings"
-  // response can win the race against background's slower, correct one.
-  if (message.type !== MessageType.ClassifyImageRequest || !message.settings) return false
+  // OffscreenClassifyRequest (background -> offscreen) is a distinct type
+  // from ClassifyImageRequest (content -> background) specifically so this
+  // listener never sees the latter — chrome.runtime.sendMessage broadcasts
+  // to every onMessage listener in the extension, so without that
+  // separation this listener would also see content script's original
+  // request directly, racing background's own handling of it.
+  if (message.type !== MessageType.OffscreenClassifyRequest) return false
   void handleClassify(message.imageUrl, message.settings).then((result) => {
     sendResponse({
       type: MessageType.ClassifyImageResponse,

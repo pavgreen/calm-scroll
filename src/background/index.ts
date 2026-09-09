@@ -1,4 +1,8 @@
-import { MessageType, type ExtensionMessage } from '../shared/messaging'
+import {
+  MessageType,
+  type ExtensionMessage,
+  type OffscreenClassifyRequest,
+} from '../shared/messaging'
 import { DEFAULT_SETTINGS, type ExtensionSettings } from '../shared/categories'
 
 /**
@@ -53,7 +57,7 @@ async function ensureOffscreenDocument(): Promise<void> {
  * resolving doesn't guarantee the document's own script has run to that point).
  */
 async function sendToOffscreenWithRetry(
-  message: unknown,
+  message: OffscreenClassifyRequest,
   attempts = 5,
   delayMs = 150,
 ): Promise<unknown> {
@@ -72,15 +76,6 @@ async function sendToOffscreenWithRetry(
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
   switch (message.type) {
     case MessageType.ClassifyImageRequest: {
-      // chrome.runtime.sendMessage broadcasts to every onMessage listener in
-      // the extension, not just an intended recipient — so the offscreen
-      // document's own listener also sees this SAME message on its way in
-      // from the content script, and background's OWN outgoing relay (with
-      // settings attached, below) loops back to this very listener too.
-      // `settings` presence discriminates: only messages WITHOUT it are
-      // genuine incoming content-script requests for background to handle;
-      // ones background already relayed (with settings) get ignored here.
-      if (message.settings) return false
       void (async () => {
         try {
           const settings = await getSettings()
@@ -95,14 +90,21 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
             return
           }
           await ensureOffscreenDocument()
-          // chrome.runtime.sendMessage from background to the offscreen
-          // document's own onMessage listener is itself a scoped request/
-          // response round trip, so the result can just be relayed directly —
-          // no separate correlation table is needed for this 1:1 proxy.
-          // Retried because createDocument() can resolve slightly before the
-          // offscreen document's own script has finished registering its
-          // onMessage listener ("Receiving end does not exist" race).
-          const response = await sendToOffscreenWithRetry({ ...message, settings })
+          // A distinct message type for this leg (rather than re-sending
+          // MessageType.ClassifyImageRequest with settings attached) is
+          // what actually prevents this listener and offscreen's from
+          // racing to answer the same broadcast — see OffscreenClassifyRequest's
+          // doc comment in shared/messaging.ts. Retried because
+          // createDocument() can resolve slightly before the offscreen
+          // document's own script has finished registering its listener
+          // ("Receiving end does not exist" race).
+          const offscreenRequest: OffscreenClassifyRequest = {
+            type: MessageType.OffscreenClassifyRequest,
+            requestId: message.requestId,
+            imageUrl: message.imageUrl,
+            settings,
+          }
+          const response = await sendToOffscreenWithRetry(offscreenRequest)
           sendResponse(response)
         } catch (err) {
           console.error('[calm-scroll/background] classify request failed:', err)

@@ -5,6 +5,7 @@ import type { ExtensionSettings, PhobiaCategory } from './categories'
  */
 export const MessageType = {
   ClassifyImageRequest: 'CLASSIFY_IMAGE_REQUEST',
+  OffscreenClassifyRequest: 'OFFSCREEN_CLASSIFY_REQUEST',
   ClassifyImageResponse: 'CLASSIFY_IMAGE_RESPONSE',
   GetSettings: 'GET_SETTINGS',
   GetSettingsResponse: 'GET_SETTINGS_RESPONSE',
@@ -14,12 +15,27 @@ export const MessageType = {
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType]
 
+/**
+ * Content script -> background. Distinct from OffscreenClassifyRequest below
+ * even though the payloads mostly overlap: chrome.runtime.sendMessage
+ * broadcasts to every onMessage listener in the extension, not just an
+ * intended recipient, so background and the offscreen document (which each
+ * register their own listener) would otherwise both see the SAME message
+ * and race to answer it. Distinct types make each leg unambiguous by
+ * construction instead of relying on payload shape (e.g. "has settings").
+ */
 export interface ClassifyImageRequest {
   type: typeof MessageType.ClassifyImageRequest
   requestId: string
   imageUrl: string
-  /** Attached by background when forwarding this request to the offscreen document. */
-  settings?: ExtensionSettings
+}
+
+/** Background -> offscreen document (see ClassifyImageRequest's doc comment). */
+export interface OffscreenClassifyRequest {
+  type: typeof MessageType.OffscreenClassifyRequest
+  requestId: string
+  imageUrl: string
+  settings: ExtensionSettings
 }
 
 export interface ClassifyImageResponse {
@@ -56,6 +72,7 @@ export interface OffscreenReadyMessage {
 
 export type ExtensionMessage =
   | ClassifyImageRequest
+  | OffscreenClassifyRequest
   | ClassifyImageResponse
   | GetSettingsRequest
   | GetSettingsResponse
