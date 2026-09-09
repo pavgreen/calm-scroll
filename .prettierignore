@@ -2,3 +2,7 @@ dist
 node_modules
 package-lock.json
 icons
+
+# Vendored skill content (npx modern-web-guidance install) -- third-party,
+# not ours to reformat.
+.agents/

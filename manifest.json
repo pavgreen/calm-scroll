@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "CalmScroll",
   "version": "0.0.1",
-  "description": "Blurs phobia-triggering images (spiders, snakes, insects, blood/gore, needles, clowns, dogs) using an on-device ML model. No network calls at runtime.",
+  "description": "Blurs phobia images (spiders, snakes, insects, gore, needles, clowns, dogs) with on-device ML. No network calls at runtime.",
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {

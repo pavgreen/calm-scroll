@@ -131,23 +131,20 @@ setup above done first — see `tests/e2e/README.md`.
 
 ## Before submitting to the Chrome Web Store
 
-Not yet done, and blocking a real submission:
+`CHROMEWEBSTORE.md` (listing copy, permissions justifications, privacy data
+table) and `PRIVACY.md` (the policy itself) are drafted, but not complete —
+see the `TODO`s in each. Still needed:
 
-- **Privacy Practices disclosure** — the dashboard requires an explicit
-  "does this extension collect user data" declaration and, given
-  `host_permissions: ["<all_urls>"]`, almost certainly a linked privacy
-  policy page even though the true answer is "no data leaves the device"
-  (`allowRemoteModels: false`, no analytics, no remote code — worth stating
-  plainly on that page).
-- **Per-permission justification text** — the dashboard requires a short
-  written justification for each of `storage`, `offscreen`, `contextMenus`,
-  and `host_permissions`. See the host_permissions note above for that one;
-  the other three are self-evident from their names.
-- **Single-purpose description** — a short listing description stating the
-  one thing this extension does (blur phobia-triggering images, on-device).
-  The `manifest.json` description is close but the store listing needs its
-  own, longer copy plus at least one screenshot (1280×800 or 640×400) and a
-  440×280 small promotional tile.
+- **Host `PRIVACY.md` at a public URL** and put that URL in
+  `CHROMEWEBSTORE.md`'s Privacy Policy section — a raw file in the repo
+  isn't enough; the review team visits the link (GitHub Pages is the
+  easiest option for a repo already on GitHub).
+- **Screenshots + promo tile** — at least one 1280×800 or 640×400
+  screenshot, ideally the options page and a blurred image mid-hover-peek
+  (see `CHROMEWEBSTORE.md`'s Screenshot Notes); a 440×280 small promo tile
+  is recommended but optional.
+- **Developer info** — publisher name, contact email, category — all
+  deliberately left as `TODO` in `CHROMEWEBSTORE.md` rather than guessed.
 - **Version bump** — `0.0.1` is fine for a first upload; every subsequent
   upload needs a strictly higher `version`.
 - **Package for upload**: zip the _contents_ of `dist/` (not the `dist/`

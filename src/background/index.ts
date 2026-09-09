@@ -75,10 +75,15 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== TOGGLE_MENU_ID || !tab?.id || !info.srcUrl) return
-  void chrome.tabs.sendMessage(tab.id, {
-    type: MessageType.ToggleImageBlur,
-    imageUrl: info.srcUrl,
-  })
+  // Caught, not left as an unhandled rejection: the content script won't be
+  // there to receive this on a page the extension can't inject into (e.g.
+  // chrome:// or a PDF viewer) or one that loaded before install/reload --
+  // the image-only context menu item can technically still appear there.
+  chrome.tabs
+    .sendMessage(tab.id, { type: MessageType.ToggleImageBlur, imageUrl: info.srcUrl })
+    .catch((err: unknown) => {
+      console.warn('[calm-scroll/background] could not reach content script for toggle:', err)
+    })
 })
 
 /**

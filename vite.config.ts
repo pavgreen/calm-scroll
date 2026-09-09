@@ -31,8 +31,29 @@ function pruneUnusedOnnxWasm(): Plugin {
   }
 }
 
+/**
+ * Vite's public/ passthrough copies files verbatim, including whatever
+ * macOS Finder metadata (.DS_Store) happened to accumulate in public/ and
+ * public/models/ on a given developer's machine during local testing --
+ * these aren't committed (gitignored globally), but they're real files on
+ * disk that a local build will still copy into dist/, and from there into a
+ * Chrome Web Store upload if nobody notices. Swept recursively after build
+ * rather than just the folders known to have them today, since new ones can
+ * appear anywhere under public/ without warning.
+ */
+function pruneDsStore(): Plugin {
+  return {
+    name: 'prune-ds-store',
+    closeBundle() {
+      for (const file of readdirSync('dist', { recursive: true }) as string[]) {
+        if (file.endsWith('.DS_Store')) rmSync(join('dist', file))
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [crx({ manifest }), pruneUnusedOnnxWasm()],
+  plugins: [crx({ manifest }), pruneUnusedOnnxWasm(), pruneDsStore()],
   build: {
     rollupOptions: {
       input: {
