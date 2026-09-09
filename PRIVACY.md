@@ -1,6 +1,10 @@
-Privacy Policy for Calm Scroll
+---
+title: Privacy Policy — Calm Scroll
+---
 
-Last updated: 2026-09-09
+# Privacy Policy for Calm Scroll
+
+_Last updated: 2026-09-10_
 
 Calm Scroll does not collect, store, or transmit any personal data or
 browsing information. All image classification runs entirely on your
@@ -22,5 +26,6 @@ Specifically:
   used only for that purpose and never to read, store, or transmit page
   content elsewhere.
 
-If you have questions about this policy, please open an issue on the
+If you have questions about this policy, please
+[open an issue](https://github.com/pavgreen/calm-scroll/issues) on the
 project's repository.

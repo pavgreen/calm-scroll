@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Calm Scroll
 
-> Last Updated: 2026-09-09
+> Last Updated: 2026-09-10
 > Status: draft — fields marked TODO need your input before submission.
 
 ## Store Listing
@@ -39,7 +39,7 @@ PERMISSIONS
 "Read and change data on all your websites" — needed to find and blur images on any page you visit, and to load the small amount of code (right-click menu, blur styling) that makes that work. Images are analyzed on-device only.
 
 SUPPORT
-Found a bug or have a suggestion? Open an issue at [TODO: repository URL].
+Found a bug or have a suggestion? Open an issue at https://github.com/pavgreen/calm-scroll/issues.
 
 Version 0.0.1
 ```
@@ -108,10 +108,12 @@ faster than the popup alone.
 
 **Privacy Policy URL**
 
-TODO — `PRIVACY.md` exists in this repo but needs to be hosted at a public
-URL (e.g. GitHub Pages, or the raw GitHub URL if this repo is public) before
-it can go in the submission form. The Chrome Web Store review team visits
-the link, so a private-repo raw URL won't work.
+https://pavgreen.github.io/calm-scroll/PRIVACY.html
+
+<!-- Repo is public and GitHub Pages is enabled (legacy Jekyll build,
+     source: main branch root) -- confirm this exact URL resolves after
+     pushing PRIVACY.md's front matter (Jekyll needs it to convert the
+     .md into a real .html page instead of serving raw markdown text). -->
 
 ## Distribution
 
@@ -131,11 +133,11 @@ than guessed.
 
 **Support URL / Email**
 
-TODO
+https://github.com/pavgreen/calm-scroll/issues
 
 **Homepage URL**
 
-TODO
+https://github.com/pavgreen/calm-scroll
 
 ## Version History
 
