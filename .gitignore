@@ -14,3 +14,7 @@ src/shared/category-embeddings.generated.json
 
 # Generated placeholder icons — regenerate locally via `npm run icons:placeholder`.
 icons/
+
+# Playwright's own e2e test output.
+test-results/
+playwright-report/

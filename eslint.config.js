@@ -10,7 +10,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: { project: ['./tsconfig.json'] },
-      globals: { ...globals.browser, ...globals.webextensions },
+      globals: { ...globals.browser, ...globals.webextensions, ...globals.node },
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],

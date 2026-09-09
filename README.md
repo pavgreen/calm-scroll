@@ -8,9 +8,11 @@ in the browser; no network calls at runtime.
 
 ## Structure
 
-- `src/content` — scans the page DOM for `<img>` elements, requests
-  classification for each, and applies a blur (hover-peek + click-to-toggle)
-  to matches.
+- `src/content` — scans the page DOM for `<img>` elements and requests
+  classification for each; blurring itself is a CSS default (`blur.css`,
+  injected at `document_start`) that this script only ever lifts once an
+  image is confirmed safe. Toggling a specific image's blur is a right-click
+  context menu action, not a click on the image (see `src/background`).
 - `src/background` — MV3 service worker; routes typed messages between all
   other surfaces, owns settings storage, and creates/manages the offscreen
   document on demand.
@@ -83,6 +85,18 @@ npm run typecheck
 npm run lint
 npm run format:check
 ```
+
+## Testing
+
+```sh
+npm test          # fast unit tests (src/shared/similarity.ts's decide()) -- no setup needed
+npm run test:e2e  # real extension + real model inference against live reference pages
+```
+
+`npm test` is dependency-free and runs on every change. `npm run test:e2e`
+drives the actual built extension in a real browser (Wikipedia's "Spider"
+article, plus a best-effort Google Images check) and needs the full local
+setup above done first — see `tests/e2e/README.md`.
 
 ## Notes
 
