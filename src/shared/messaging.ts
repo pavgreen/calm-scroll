@@ -11,6 +11,7 @@ export const MessageType = {
   GetSettingsResponse: 'GET_SETTINGS_RESPONSE',
   SettingsUpdated: 'SETTINGS_UPDATED',
   OffscreenReady: 'OFFSCREEN_READY',
+  ToggleImageBlur: 'TOGGLE_IMAGE_BLUR',
 } as const
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType]
@@ -70,6 +71,19 @@ export interface OffscreenReadyMessage {
   type: typeof MessageType.OffscreenReady
 }
 
+/**
+ * Background -> content script, in response to the right-click "Toggle
+ * blur" context menu item. Sent via chrome.tabs.sendMessage (targeted at
+ * one tab), not the broadcast-everywhere chrome.runtime.sendMessage used
+ * elsewhere in this file — there's only ever one intended recipient here,
+ * so the broadcast-collision class of bug (see ClassifyImageRequest's doc
+ * comment) doesn't apply.
+ */
+export interface ToggleImageBlurMessage {
+  type: typeof MessageType.ToggleImageBlur
+  imageUrl: string
+}
+
 export type ExtensionMessage =
   | ClassifyImageRequest
   | OffscreenClassifyRequest
@@ -78,6 +92,7 @@ export type ExtensionMessage =
   | GetSettingsResponse
   | SettingsUpdatedMessage
   | OffscreenReadyMessage
+  | ToggleImageBlurMessage
 
 export function sendMessage<TResponse = unknown>(message: ExtensionMessage): Promise<TResponse> {
   return chrome.runtime.sendMessage(message)

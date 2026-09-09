@@ -12,6 +12,7 @@ import { DEFAULT_SETTINGS, type ExtensionSettings } from '../shared/categories'
 
 const SETTINGS_STORAGE_KEY = 'settings'
 const OFFSCREEN_URL = 'src/offscreen/index.html'
+const TOGGLE_BLUR_MENU_ID = 'calm-scroll-toggle-blur'
 
 async function getSettings(): Promise<ExtensionSettings> {
   const stored = await chrome.storage.local.get(SETTINGS_STORAGE_KEY)
@@ -24,6 +25,29 @@ async function saveSettings(settings: ExtensionSettings): Promise<void> {
 
 chrome.runtime.onInstalled.addListener(() => {
   void getSettings().then((settings) => saveSettings(settings))
+
+  // Right-click "Toggle blur" on any image, instead of a plain click on the
+  // image itself — avoids toggling by accident on what might just be a
+  // normal click (e.g. following a link). Chrome groups extension-added
+  // context menu items into their own section near the bottom of the
+  // native menu automatically; no positioning to configure on our end.
+  // removeAll() first: onInstalled also fires on extension update, and
+  // create() with a pre-existing id throws "duplicate id" otherwise.
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: TOGGLE_BLUR_MENU_ID,
+      title: 'Toggle CalmScroll blur',
+      contexts: ['image'],
+    })
+  })
+})
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== TOGGLE_BLUR_MENU_ID || !tab?.id || !info.srcUrl) return
+  void chrome.tabs.sendMessage(tab.id, {
+    type: MessageType.ToggleImageBlur,
+    imageUrl: info.srcUrl,
+  })
 })
 
 /**

@@ -1,4 +1,9 @@
-import { MessageType, sendMessage, type ClassifyImageResponse } from '../shared/messaging'
+import {
+  MessageType,
+  sendMessage,
+  type ClassifyImageResponse,
+  type ExtensionMessage,
+} from '../shared/messaging'
 
 /**
  * Content script.
@@ -136,7 +141,6 @@ const intersectionObserver = new IntersectionObserver(
 function observeImage(img: HTMLImageElement): void {
   if (observedImages.has(img)) return
   observedImages.add(img)
-  img.addEventListener('click', () => img.classList.toggle(SAFE_CLASS))
   if (isLikelyIcon(img)) {
     img.classList.add(SAFE_CLASS)
     return
@@ -162,6 +166,19 @@ function observeDom(): void {
   })
   mutationObserver.observe(document.documentElement, { childList: true, subtree: true })
 }
+
+// Toggling is done via the right-click "Toggle CalmScroll blur" context
+// menu item (background/index.ts), not a plain click on the image — this
+// message is background relaying that click, targeted at this one tab via
+// chrome.tabs.sendMessage rather than a broadcast.
+chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
+  if (message.type !== MessageType.ToggleImageBlur) return
+  document.querySelectorAll('img').forEach((img) => {
+    if (img.src === message.imageUrl || img.currentSrc === message.imageUrl) {
+      img.classList.toggle(SAFE_CLASS)
+    }
+  })
+})
 
 function init(): void {
   scanExistingImages()
