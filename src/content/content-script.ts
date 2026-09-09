@@ -167,18 +167,26 @@ function observeDom(): void {
   mutationObserver.observe(document.documentElement, { childList: true, subtree: true })
 }
 
-// Set (not toggle) via the right-click "CalmScroll - Blur Image" /
-// "CalmScroll - Display Image" context menu items (background/index.ts),
-// not a plain click on the image — this message is background relaying
-// that click, targeted at this one tab via chrome.tabs.sendMessage rather
-// than a broadcast.
+// Triggered by the right-click "Calm Scroll - Toggle Image Blur" context
+// menu item (background/index.ts), not a plain click on the image — this
+// message is background relaying that click, targeted at this one tab via
+// chrome.tabs.sendMessage rather than a broadcast.
 chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
-  if (message.type !== MessageType.SetImageBlur) return
+  if (message.type !== MessageType.ToggleImageBlur) return
+  let matched = 0
   document.querySelectorAll('img').forEach((img) => {
     if (img.src === message.imageUrl || img.currentSrc === message.imageUrl) {
-      img.classList.toggle(SAFE_CLASS, !message.blurred)
+      matched++
+      img.classList.toggle(SAFE_CLASS)
     }
   })
+  if (matched === 0) {
+    // Logged, not swallowed silently: if this ever fires, the URL Chrome
+    // handed us via info.srcUrl didn't match any img.src/currentSrc in this
+    // document (e.g. a src rewritten after the context menu opened), so the
+    // click will visibly do nothing.
+    console.warn('[calm-scroll/content] toggle-blur: no matching <img> for', message.imageUrl)
+  }
 })
 
 function init(): void {

@@ -11,7 +11,7 @@ export const MessageType = {
   GetSettingsResponse: 'GET_SETTINGS_RESPONSE',
   SettingsUpdated: 'SETTINGS_UPDATED',
   OffscreenReady: 'OFFSCREEN_READY',
-  SetImageBlur: 'SET_IMAGE_BLUR',
+  ToggleImageBlur: 'TOGGLE_IMAGE_BLUR',
 } as const
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType]
@@ -72,26 +72,23 @@ export interface OffscreenReadyMessage {
 }
 
 /**
- * Background -> content script, in response to the right-click "CalmScroll
- * - Blur Image" / "CalmScroll - Display Image" context menu items. Sent via
- * chrome.tabs.sendMessage (targeted at one tab), not the
- * broadcast-everywhere chrome.runtime.sendMessage used elsewhere in this
- * file — there's only ever one intended recipient here, so the
- * broadcast-collision class of bug (see ClassifyImageRequest's doc comment)
- * doesn't apply.
+ * Background -> content script, in response to the right-click "Calm Scroll
+ * - Toggle Image Blur" context menu item. Sent via chrome.tabs.sendMessage
+ * (targeted at one tab), not the broadcast-everywhere
+ * chrome.runtime.sendMessage used elsewhere in this file — there's only
+ * ever one intended recipient here, so the broadcast-collision class of bug
+ * (see ClassifyImageRequest's doc comment) doesn't apply.
  *
- * Deterministic (set to a specific state), not a toggle: with no reliable
- * way to know an image's current blur state before the context menu opens
- * (chrome.contextMenus.onShown isn't available in the target Chrome
- * version), a toggle's effect would be ambiguous to the user. Two
- * always-visible menu items with a fixed effect each avoids needing that
- * API at all — clicking the one that already matches the current state is
- * just a harmless no-op.
+ * A true toggle, not a set-to-specific-state message: the content script is
+ * the one place that actually knows an image's current blur state (via
+ * SAFE_CLASS), so it flips it directly rather than background trying to
+ * compute a target state blind. This also sidesteps needing
+ * chrome.contextMenus.onShown, which isn't available in the target Chrome
+ * version.
  */
-export interface SetImageBlurMessage {
-  type: typeof MessageType.SetImageBlur
+export interface ToggleImageBlurMessage {
+  type: typeof MessageType.ToggleImageBlur
   imageUrl: string
-  blurred: boolean
 }
 
 export type ExtensionMessage =
@@ -102,7 +99,7 @@ export type ExtensionMessage =
   | GetSettingsResponse
   | SettingsUpdatedMessage
   | OffscreenReadyMessage
-  | SetImageBlurMessage
+  | ToggleImageBlurMessage
 
 export function sendMessage<TResponse = unknown>(message: ExtensionMessage): Promise<TResponse> {
   return chrome.runtime.sendMessage(message)

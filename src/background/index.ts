@@ -12,8 +12,7 @@ import { DEFAULT_SETTINGS, type ExtensionSettings } from '../shared/categories'
 
 const SETTINGS_STORAGE_KEY = 'settings'
 const OFFSCREEN_URL = 'src/offscreen/index.html'
-const BLUR_MENU_ID = 'calm-scroll-blur-image'
-const DISPLAY_MENU_ID = 'calm-scroll-display-image'
+const TOGGLE_MENU_ID = 'calm-scroll-toggle-image-blur'
 
 async function getSettings(): Promise<ExtensionSettings> {
   const stored = await chrome.storage.local.get(SETTINGS_STORAGE_KEY)
@@ -45,31 +44,24 @@ chrome.runtime.onInstalled.addListener(() => {
   void getSettings().then((settings) => saveSettings(settings))
   void warmUpIfEnabled()
 
-  // Right-click actions on any image, instead of a plain click on the image
+  // Right-click action on any image, instead of a plain click on the image
   // itself — avoids triggering by accident on what might just be a normal
   // click (e.g. following a link). Chrome groups extension-added context
   // menu items into their own section near the bottom of the native menu
   // automatically; no positioning to configure on our end.
   //
-  // Two separate, always-visible items with a fixed effect each, rather
-  // than a single toggle: chrome.contextMenus.onShown (which would let the
-  // menu show only the relevant one, or relabel a single item, based on the
-  // image's actual current state) isn't available in the target Chrome
-  // version, and there's no other reliable way to know that state before
-  // the menu opens. Clicking the item that already matches the current
-  // state is just a harmless no-op.
+  // A single toggle item rather than two fixed-effect items: the content
+  // script (which owns SAFE_CLASS) is the one place that actually knows an
+  // image's current blur state, so it can flip it directly — no need for
+  // chrome.contextMenus.onShown (not available in the target Chrome
+  // version) or for background to guess a target state.
   //
   // removeAll() first: onInstalled also fires on extension update, and
   // create() with a pre-existing id throws "duplicate id" otherwise.
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id: BLUR_MENU_ID,
-      title: 'CalmScroll - Blur Image',
-      contexts: ['image'],
-    })
-    chrome.contextMenus.create({
-      id: DISPLAY_MENU_ID,
-      title: 'CalmScroll - Display Image',
+      id: TOGGLE_MENU_ID,
+      title: 'Calm Scroll - Toggle Image Blur',
       contexts: ['image'],
     })
   })
@@ -82,14 +74,10 @@ chrome.runtime.onStartup.addListener(() => {
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (!tab?.id || !info.srcUrl) return
-  const blurred =
-    info.menuItemId === BLUR_MENU_ID ? true : info.menuItemId === DISPLAY_MENU_ID ? false : null
-  if (blurred === null) return
+  if (info.menuItemId !== TOGGLE_MENU_ID || !tab?.id || !info.srcUrl) return
   void chrome.tabs.sendMessage(tab.id, {
-    type: MessageType.SetImageBlur,
+    type: MessageType.ToggleImageBlur,
     imageUrl: info.srcUrl,
-    blurred,
   })
 })
 
