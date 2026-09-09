@@ -28,14 +28,15 @@ in the browser; no network calls at runtime.
 
 - Node.js `v26.8.1`+ (managed via `nvm`; run `nvm use` before installing/building if you switch machines) and npm.
 
-## Model setup (required once, before the extension can classify anything)
+## Local setup (required once, before the extension will build/run correctly)
 
-The vision model, ONNX Runtime WASM binary, and precomputed category text
-embeddings are **not committed to the repo** (they're large/generated —
-see `.gitignore`). Generate them locally:
+The toolbar icons, vision model, ONNX Runtime WASM binary, and precomputed
+category text embeddings are all **generated, not committed to the repo**
+(see `.gitignore`). Generate them locally:
 
 ```sh
 npm install                       # also vendors the WASM runtime via postinstall
+npm run icons:placeholder         # generates icons/*.png (zero deps, fully offline)
 npm run models:fetch-vision       # downloads + vendors the ~45MB fp32 vision encoder
 npm run embeddings:precompute     # downloads the text encoder (~170MB, not kept),
                                    # writes the small category-embeddings.generated.json
@@ -90,9 +91,10 @@ npm run format:check
   dynamically created iframes) — it is **not** required for the static
   content script to run, since that's granted by its own `matches` field.
   Revisit and narrow this before Chrome Web Store submission.
-- `icons/*.png` are generated placeholders (solid violet squares) produced by
-  `npm run icons:placeholder` (`scripts/generate-placeholder-icons.mjs`, zero
-  dependencies, fully offline). Swap in real artwork before shipping.
+- `icons/*.png` are generated placeholders (solid violet squares) — gitignored,
+  produced by `npm run icons:placeholder`
+  (`scripts/generate-placeholder-icons.mjs`, zero dependencies, fully
+  offline). Swap in real artwork before shipping.
 - **Known follow-ups**: (1) `npm run build` currently also bundles an unused
   duplicate copy of the ONNX Runtime WASM binary as a Vite asset (~23MB dead
   weight, separate from the correctly-vendored copy in `public/ort/` that's

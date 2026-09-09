@@ -11,3 +11,6 @@ dist
 public/models/
 public/ort/
 src/shared/category-embeddings.generated.json
+
+# Generated placeholder icons — regenerate locally via `npm run icons:placeholder`.
+icons/
