@@ -3,3 +3,11 @@ dist
 .DS_Store
 *.log
 .claude/
+.transformers-cache/
+
+# ML build artifacts — large binaries and scripted output, regenerate
+# locally via `npm run models:fetch-vision` and `npm run embeddings:precompute`
+# (public/ort/ is regenerated automatically by the postinstall hook).
+public/models/
+public/ort/
+src/shared/category-embeddings.generated.json

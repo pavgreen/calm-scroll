@@ -1,9 +1,7 @@
-import type { ExtensionSettings } from './categories'
+import type { ExtensionSettings, PhobiaCategory } from './categories'
 
 /**
  * Typed message contracts for content <-> background <-> offscreen <-> popup/options.
- * TODO(ml-phase): extend ClassifyImageResponse with per-category scores once the
- * transformers.js model is wired up in the offscreen document.
  */
 export const MessageType = {
   ClassifyImageRequest: 'CLASSIFY_IMAGE_REQUEST',
@@ -20,13 +18,22 @@ export interface ClassifyImageRequest {
   type: typeof MessageType.ClassifyImageRequest
   requestId: string
   imageUrl: string
+  /** Attached by background when forwarding this request to the offscreen document. */
+  settings?: ExtensionSettings
 }
 
 export interface ClassifyImageResponse {
   type: typeof MessageType.ClassifyImageResponse
   requestId: string
-  /** TODO(ml-phase): replace with real per-category confidence scores. */
   isSensitive: boolean
+  /** Cosine-similarity score per category actually evaluated. */
+  scores: Partial<Record<PhobiaCategory, number>>
+  /** Cosine-similarity score against the neutral/benign anchor — useful for calibration. */
+  neutralScore?: number
+  /** Categories that beat the neutral anchor, cleared the sensitivity threshold, and are enabled. */
+  matchedCategories: PhobiaCategory[]
+  /** Present when classification failed (image load/model error) — isSensitive is safely false in that case. */
+  error?: string
 }
 
 export interface GetSettingsRequest {

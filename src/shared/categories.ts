@@ -1,18 +1,23 @@
+import {
+  CATEGORY_PROMPT_TEMPLATES as _CATEGORY_PROMPT_TEMPLATES,
+  NEUTRAL_ANCHOR_PROMPTS,
+} from './prompts.mjs'
+
 /**
  * Canonical list of phobia categories the extension can detect and blur.
- * TODO(ml-phase): Each category will eventually map to one or more labels
- * produced by the on-device transformers.js image classification model.
+ * Zero-shot text prompts per category (used to precompute classification
+ * embeddings) live in ./prompts.mjs — re-exported below, cast onto
+ * PhobiaCategory since prompts.mjs is plain JS and only knows about the
+ * category id strings, not the TS enum type.
  */
 export enum PhobiaCategory {
   Spiders = 'spiders',
   Snakes = 'snakes',
   Insects = 'insects',
-  Trypophobia = 'trypophobia',
   BloodGore = 'blood_gore',
   Needles = 'needles',
   Clowns = 'clowns',
   Dogs = 'dogs',
-  Heights = 'heights',
 }
 
 export interface PhobiaCategoryInfo {
@@ -26,11 +31,6 @@ export const PHOBIA_CATEGORIES: readonly PhobiaCategoryInfo[] = [
   { id: PhobiaCategory.Snakes, label: 'Snakes', description: 'Ophidiophobia triggers' },
   { id: PhobiaCategory.Insects, label: 'Insects', description: 'Entomophobia triggers' },
   {
-    id: PhobiaCategory.Trypophobia,
-    label: 'Clustered holes/patterns',
-    description: 'Trypophobia triggers',
-  },
-  {
     id: PhobiaCategory.BloodGore,
     label: 'Blood & gore',
     description: 'Hemophobia / graphic injury triggers',
@@ -38,11 +38,6 @@ export const PHOBIA_CATEGORIES: readonly PhobiaCategoryInfo[] = [
   { id: PhobiaCategory.Needles, label: 'Needles', description: 'Trypanophobia triggers' },
   { id: PhobiaCategory.Clowns, label: 'Clowns', description: 'Coulrophobia triggers' },
   { id: PhobiaCategory.Dogs, label: 'Dogs', description: 'Cynophobia triggers' },
-  {
-    id: PhobiaCategory.Heights,
-    label: 'Heights',
-    description: 'Acrophobia triggers (vertigo-inducing imagery)',
-  },
 ]
 
 export type CategorySettings = Record<PhobiaCategory, boolean>
@@ -73,3 +68,9 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   allowList: [],
   denyList: [],
 }
+
+export const CATEGORY_PROMPT_TEMPLATES = _CATEGORY_PROMPT_TEMPLATES as unknown as Record<
+  PhobiaCategory,
+  string[]
+>
+export { NEUTRAL_ANCHOR_PROMPTS }

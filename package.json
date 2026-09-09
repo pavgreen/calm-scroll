@@ -12,7 +12,13 @@
     "lint:fix": "eslint \"src/**/*.ts\" vite.config.ts --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "icons:placeholder": "node scripts/generate-placeholder-icons.mjs"
+    "icons:placeholder": "node scripts/generate-placeholder-icons.mjs",
+    "models:fetch-vision": "node scripts/fetch-vision-model.mjs",
+    "embeddings:precompute": "node scripts/precompute-embeddings.mjs",
+    "postinstall": "node scripts/copy-onnxruntime-wasm.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.7.1",
