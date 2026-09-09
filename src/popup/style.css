@@ -1,16 +1,44 @@
+@import '../shared/theme.css';
+
 body {
-  width: 220px;
-  margin: 0;
-  font-family: system-ui, sans-serif;
+  width: 260px;
 }
 
 .popup {
-  padding: 12px;
+  padding: 16px;
+}
+
+.popup-header {
+  margin-bottom: 12px;
+}
+
+.popup-header h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin: 8px 0;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.row-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.options-link {
+  display: block;
+  text-align: center;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.options-link:hover {
+  text-decoration: underline;
 }

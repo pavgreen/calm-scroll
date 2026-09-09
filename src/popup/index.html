@@ -7,12 +7,21 @@
   </head>
   <body>
     <main class="popup">
-      <h1>CalmScroll</h1>
-      <label class="row">
-        <span>Enabled</span>
-        <input id="enabled-toggle" type="checkbox" />
-      </label>
-      <a id="open-options" href="#">More settings</a>
+      <header class="popup-header">
+        <h1>CalmScroll</h1>
+      </header>
+
+      <div class="card">
+        <div class="row">
+          <span class="row-label">Enabled</span>
+          <label class="toggle">
+            <input id="enabled-toggle" type="checkbox" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+      </div>
+
+      <a id="open-options" class="options-link" href="#">More settings</a>
     </main>
     <script type="module" src="./index.ts"></script>
   </body>

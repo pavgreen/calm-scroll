@@ -1,0 +1,109 @@
+/*
+ * Shared design tokens + primitives for every extension surface with a UI
+ * (popup, options). Keeping this in one place means the two never drift
+ * apart visually — change a color or the toggle switch once, here.
+ */
+
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --border: #e3e3e8;
+  --text: #1a1a1e;
+  --text-secondary: #68686f;
+  --accent: #7c3aed;
+  --accent-contrast: #ffffff;
+  --shadow: 0 1px 2px rgba(20, 20, 30, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17171b;
+    --surface: #1f1f24;
+    --border: #303038;
+    --text: #f0f0f3;
+    --text-secondary: #9c9ca6;
+    --accent: #9d6fff;
+    --accent-contrast: #17171b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Toggle switch */
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.toggle-track {
+  width: 38px;
+  height: 22px;
+  background: var(--border);
+  border-radius: 999px;
+  transition: background-color 0.15s ease;
+}
+
+.toggle-thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 2px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease;
+}
+
+.toggle input:checked + .toggle-track {
+  background: var(--accent);
+}
+
+.toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(16px);
+}
+
+.toggle input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
