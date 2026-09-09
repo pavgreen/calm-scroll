@@ -38,8 +38,6 @@ env.backends.onnx.wasm!.wasmPaths = chrome.runtime.getURL('ort/')
 env.useBrowserCache = false
 env.useWasmCache = false
 
-let modelPromise: ReturnType<typeof loadModel> | null = null
-
 function loadModel() {
   // dtype: fp32 — see scripts/fetch-vision-model.mjs for why (uint8
   // quantization was verified empirically to collapse this model's
@@ -49,6 +47,20 @@ function loadModel() {
     CLIPVisionModelWithProjection.from_pretrained(MODEL_ID, { dtype: 'fp32' }),
   ])
 }
+
+// Starts loading immediately when this document is created (background
+// creates it eagerly on install/browser-startup — see warmUpIfEnabled in
+// background/index.ts) rather than lazily on the first classify request,
+// so the ~45MB model + WASM runtime cold-load overlaps with normal
+// browser/page-load activity instead of blocking a user's first image.
+const modelPromise = loadModel()
+// Loading eagerly (above) means nothing awaits this promise until a
+// classify request actually arrives, which could be well after it settles
+// -- if it rejects in the meantime, this keeps that from surfacing as a
+// spurious "unhandled rejection" console warning. handleClassify's own
+// `await modelPromise` below still sees and handles the real rejection via
+// its try/catch when a request does come in.
+modelPromise.catch(() => {})
 
 function dotProduct(a: number[], b: number[]): number {
   let sum = 0
@@ -89,7 +101,6 @@ async function handleClassify(
   settings: OffscreenClassifyRequest['settings'],
 ): Promise<Omit<ClassifyImageResponse, 'type' | 'requestId'>> {
   try {
-    modelPromise ??= loadModel()
     const [processor, model] = await modelPromise
 
     const image = await fetchImage(imageUrl)

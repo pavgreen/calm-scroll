@@ -23,8 +23,26 @@ async function saveSettings(settings: ExtensionSettings): Promise<void> {
   await chrome.storage.local.set({ [SETTINGS_STORAGE_KEY]: settings })
 }
 
+/**
+ * Creates the offscreen document (if enabled) so the vision model starts
+ * loading immediately, instead of on-demand when the first image actually
+ * needs classifying. The model itself is ~45MB fp32 + a ~26MB WASM runtime
+ * -- cold-loading and compiling that can take tens of seconds, and paying
+ * that cost proactively (overlapped with normal browser/page-load activity)
+ * rather than in the middle of a user's first classify request is the
+ * single biggest lever on perceived speed. Once created, the offscreen
+ * document and its loaded model persist independently of the service
+ * worker's own idle/wake lifecycle, so this only needs to happen once per
+ * browser session.
+ */
+async function warmUpIfEnabled(): Promise<void> {
+  const settings = await getSettings()
+  if (settings.enabled) await ensureOffscreenDocument()
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   void getSettings().then((settings) => saveSettings(settings))
+  void warmUpIfEnabled()
 
   // Right-click "Toggle blur" on any image, instead of a plain click on the
   // image itself — avoids toggling by accident on what might just be a
@@ -40,6 +58,12 @@ chrome.runtime.onInstalled.addListener(() => {
       contexts: ['image'],
     })
   })
+})
+
+// onInstalled only fires on install/update, not on every browser launch --
+// this is what actually warms the model up on a normal day-to-day session.
+chrome.runtime.onStartup.addListener(() => {
+  void warmUpIfEnabled()
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -152,6 +176,10 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
     }
     case MessageType.SettingsUpdated: {
       void saveSettings(message.settings).then(() => sendResponse(undefined))
+      // Covers re-enabling after the extension was off when the session
+      // started (so onStartup's warm-up saw enabled:false and skipped it) --
+      // ensureOffscreenDocument() is a no-op if already warm.
+      if (message.settings.enabled) void ensureOffscreenDocument()
       return true
     }
     case MessageType.OffscreenReady: {
