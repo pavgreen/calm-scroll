@@ -33,6 +33,16 @@ here if either is missing.
   outcome, not a bug); disabling the extension entirely reveals everything.
   These are the load-bearing tests — stable, deterministic-enough to trust
   in CI. All 4 pass reliably (~1.5 min total).
+- **`category-accuracy.spec.ts`** — one positive real-world reference image
+  per phobia category (all 7), plus 3 clearly benign images (food, two
+  landscapes) that must never match anything. Classifies directly against
+  the offscreen pipeline rather than through a page navigation, since this
+  is about model accuracy, not DOM integration — so it's fast (~40s for all
+  10, mostly model warm-up) despite covering every category. Every
+  reference image was individually verified against the real pipeline
+  before being committed; see its file header for why (CLIP zero-shot
+  scores don't always match human intuition — e.g. the spiders/insects
+  cross-match).
 - **`google-images.spec.ts`** — a live Google Images search, included because
   it's a realistic stress case (hundreds of images, no natural scroll pacing)
   this project was specifically debugged against (viewport gating, the
