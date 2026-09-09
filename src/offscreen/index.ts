@@ -56,6 +56,34 @@ function dotProduct(a: number[], b: number[]): number {
   return sum
 }
 
+/**
+ * Fetches and decodes an image manually (instead of RawImage.fromURL, which
+ * does the same thing internally but swallows the response's status/headers
+ * before decode failures). Doing this ourselves surfaces exactly what came
+ * back over the wire when createImageBitmap() rejects with "could not be
+ * decoded" — e.g. a non-200 status, an unexpected content-type (an HTML
+ * block/interstitial page instead of image bytes), or a suspiciously small
+ * body — which is otherwise indistinguishable from a genuine decode failure.
+ */
+async function fetchImage(imageUrl: string): Promise<RawImage> {
+  const response = await fetch(imageUrl)
+  const contentType = response.headers.get('content-type')
+  const blob = await response.blob()
+  if (!response.ok || !contentType?.startsWith('image/')) {
+    console.error(
+      `[calm-scroll/offscreen] unexpected response for image fetch: status=${response.status} content-type=${contentType} size=${blob.size}B url=${imageUrl}`,
+    )
+  }
+  try {
+    return await RawImage.fromBlob(blob)
+  } catch (err) {
+    console.error(
+      `[calm-scroll/offscreen] decode failed: status=${response.status} content-type=${contentType} size=${blob.size}B url=${imageUrl}`,
+    )
+    throw err
+  }
+}
+
 async function handleClassify(
   imageUrl: string,
   settings: ClassifyImageRequest['settings'],
@@ -67,7 +95,7 @@ async function handleClassify(
     modelPromise ??= loadModel()
     const [processor, model] = await modelPromise
 
-    const image = await RawImage.fromURL(imageUrl)
+    const image = await fetchImage(imageUrl)
     const inputs = await processor(image)
     const { image_embeds } = await model(inputs)
     const embedding: number[] = image_embeds.normalize().tolist()[0]
