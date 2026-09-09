@@ -4,9 +4,15 @@ import { MessageType, sendMessage, type ClassifyImageResponse } from '../shared/
  * Content script.
  * TODO(dom-phase): also scan CSS background-image and <picture>/<video poster>
  * sources, not just <img> elements.
+ *
+ * Blurring itself is NOT done here — it's a CSS default (blur.css, injected
+ * at document_start, the earliest possible point) so every image starts
+ * blurred before this script even runs, let alone before classification
+ * completes. This script's only job re: blurring is to add SAFE_CLASS once
+ * an image is actively confirmed safe, which overrides the CSS blur.
  */
 
-const BLUR_CLASS = 'calm-scroll-blur'
+const SAFE_CLASS = 'calm-scroll-safe'
 const CLASSIFY_TIMEOUT_MS = 20000
 // Only one offscreen document/model instance backs every tab's requests, so
 // bound how many classify calls are in flight at once — without this, a
@@ -15,10 +21,10 @@ const CLASSIFY_TIMEOUT_MS = 20000
 // the single inference pipeline.
 const MAX_CONCURRENT_CLASSIFICATIONS = 4
 // Images at or below this size in either dimension are treated as icons/UI
-// chrome (nav buttons, logos, badges) rather than content, and are skipped
-// entirely — with every image blurred by default (see observeImage below),
-// NOT excluding these would make image-heavy site UI mostly blurred on
-// every page load for no safety benefit.
+// chrome (nav buttons, logos, badges) rather than content, and are marked
+// safe immediately without classification — otherwise every nav icon/logo
+// on a page would sit blurred (via blur.css's default) until this script
+// gets around to them, for no safety benefit.
 const MIN_CONTENT_DIMENSION_PX = 32
 
 // Caches in-flight/completed classifications by URL so repeated <img> tags
@@ -49,9 +55,8 @@ function releaseSlot(): void {
 /**
  * Resolves to whether an image should stay blurred. Fails CLOSED: any
  * classification error or timeout resolves true (stay blurred) rather than
- * false — images are blurred by default until actively confirmed safe (see
- * observeImage/applyBlurIfNeeded below), and an inability to classify is not
- * a confirmation of safety.
+ * false — images are blurred by default (see blur.css) until actively
+ * confirmed safe, and an inability to classify is not a confirmation of safety.
  */
 async function shouldStayBlurred(imageUrl: string): Promise<boolean> {
   const cached = classificationCache.get(imageUrl)
@@ -89,13 +94,6 @@ async function shouldStayBlurred(imageUrl: string): Promise<boolean> {
   return promise
 }
 
-function injectStyles(): void {
-  const style = document.createElement('style')
-  style.textContent = `.${BLUR_CLASS} { filter: blur(24px); transition: filter 0.15s ease; cursor: pointer; }
-.${BLUR_CLASS}:hover { filter: blur(6px); }`
-  document.documentElement.appendChild(style)
-}
-
 function isLikelyIcon(img: HTMLImageElement): boolean {
   const width = img.width || img.naturalWidth
   const height = img.height || img.naturalHeight
@@ -112,7 +110,7 @@ function applyBlurIfNeeded(img: HTMLImageElement): void {
   if (!src) return
   void shouldStayBlurred(src).then((staysBlurred) => {
     if (!staysBlurred) {
-      img.classList.remove(BLUR_CLASS) // confirmed safe -> reveal
+      img.classList.add(SAFE_CLASS) // confirmed safe -> reveal
     }
   })
 }
@@ -137,14 +135,12 @@ const intersectionObserver = new IntersectionObserver(
 
 function observeImage(img: HTMLImageElement): void {
   if (observedImages.has(img)) return
-  if (isLikelyIcon(img)) return
   observedImages.add(img)
-  // Blur immediately, before classification even starts — not just once a
-  // match is confirmed — so a sensitive image is never shown unblurred
-  // while it's still waiting to be classified. Only lifted once
-  // shouldStayBlurred() confirms it's safe.
-  img.classList.add(BLUR_CLASS)
-  img.addEventListener('click', () => img.classList.toggle(BLUR_CLASS))
+  img.addEventListener('click', () => img.classList.toggle(SAFE_CLASS))
+  if (isLikelyIcon(img)) {
+    img.classList.add(SAFE_CLASS)
+    return
+  }
   intersectionObserver.observe(img)
 }
 
@@ -168,7 +164,6 @@ function observeDom(): void {
 }
 
 function init(): void {
-  injectStyles()
   scanExistingImages()
   observeDom()
 }
