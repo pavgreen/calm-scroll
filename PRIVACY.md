@@ -1,8 +1,8 @@
-Privacy Policy for CalmScroll
+Privacy Policy for Calm Scroll
 
 Last updated: 2026-09-09
 
-CalmScroll does not collect, store, or transmit any personal data or
+Calm Scroll does not collect, store, or transmit any personal data or
 browsing information. All image classification runs entirely on your
 device, using a bundled machine learning model — no image, URL, or any
 other data about the pages you visit is ever sent anywhere.

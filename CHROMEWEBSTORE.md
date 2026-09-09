@@ -1,4 +1,4 @@
-# Chrome Web Store Listing — CalmScroll
+# Chrome Web Store Listing — Calm Scroll
 
 > Last Updated: 2026-09-09
 > Status: draft — fields marked TODO need your input before submission.
@@ -7,7 +7,7 @@
 
 **Extension Name**
 
-CalmScroll
+Calm Scroll
 <!-- Must match manifest.json "name" exactly. It does. -->
 
 **Short Description** (123/132 chars, matches manifest.json)
@@ -17,7 +17,7 @@ Blurs phobia images (spiders, snakes, insects, gore, needles, clowns, dogs) with
 **Detailed Description** (draft — edit freely)
 
 ```
-CalmScroll automatically blurs images that commonly trigger phobias, so you can browse without being ambushed by them.
+Calm Scroll automatically blurs images that commonly trigger phobias, so you can browse without being ambushed by them.
 
 FEATURES
 Blurs spiders, snakes, insects, blood/gore, needles, clowns, and dogs — choose which categories matter to you
@@ -33,7 +33,7 @@ HOW TO USE
 4. Right-click any image and choose "Calm Scroll - Toggle Image Blur" to reveal or re-hide it on the spot
 
 PRIVACY
-CalmScroll does not collect, store, or transmit any personal data. All image analysis happens locally on your device using a bundled on-device model — no image or browsing data is ever sent to a server. See the full privacy policy for details.
+Calm Scroll does not collect, store, or transmit any personal data. All image analysis happens locally on your device using a bundled on-device model — no image or browsing data is ever sent to a server. See the full privacy policy for details.
 
 PERMISSIONS
 "Read and change data on all your websites" — needed to find and blur images on any page you visit, and to load the small amount of code (right-click menu, blur styling) that makes that work. Images are analyzed on-device only.
