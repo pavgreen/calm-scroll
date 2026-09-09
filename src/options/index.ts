@@ -7,9 +7,9 @@ import {
 } from '../shared/categories'
 
 /**
- * Options page skeleton: category toggles, sensitivity, allow/deny lists.
+ * Options page: category toggles, sensitivity, allow/deny lists.
  * TODO(settings-phase): wire allow/deny list add/remove UI (structure only
- * for now — see #allow-list / #deny-list containers in index.html).
+ * for now — see the allow-list/deny-list placeholders in index.html).
  */
 
 let currentSettings: ExtensionSettings = DEFAULT_SETTINGS
@@ -17,9 +17,21 @@ let currentSettings: ExtensionSettings = DEFAULT_SETTINGS
 function renderCategories(container: HTMLElement, settings: ExtensionSettings): void {
   container.innerHTML = ''
   for (const category of PHOBIA_CATEGORIES) {
-    const label = document.createElement('label')
-    label.className = 'row'
+    const row = document.createElement('div')
+    row.className = 'category-row'
 
+    const text = document.createElement('div')
+    text.className = 'category-text'
+    const label = document.createElement('span')
+    label.className = 'category-label'
+    label.textContent = category.label
+    const description = document.createElement('span')
+    description.className = 'category-description'
+    description.textContent = category.description
+    text.append(label, description)
+
+    const toggle = document.createElement('label')
+    toggle.className = 'toggle'
     const checkbox = document.createElement('input')
     checkbox.type = 'checkbox'
     checkbox.checked = settings.categories[category.id]
@@ -29,13 +41,30 @@ function renderCategories(container: HTMLElement, settings: ExtensionSettings): 
         categories: { ...currentSettings.categories, [category.id]: checkbox.checked },
       })
     })
+    const track = document.createElement('span')
+    track.className = 'toggle-track'
+    const thumb = document.createElement('span')
+    thumb.className = 'toggle-thumb'
+    track.append(thumb)
+    toggle.append(checkbox, track)
 
-    const span = document.createElement('span')
-    span.textContent = category.label
-
-    label.append(span, checkbox)
-    container.append(label)
+    row.append(text, toggle)
+    container.append(row)
   }
+}
+
+function renderSensitivity(container: HTMLElement, settings: ExtensionSettings): void {
+  const inputs = container.querySelectorAll<HTMLInputElement>('input[name="sensitivity"]')
+  inputs.forEach((input) => {
+    input.checked = input.value === settings.sensitivity
+    input.addEventListener('change', () => {
+      if (!input.checked) return
+      void persistSettings({
+        ...currentSettings,
+        sensitivity: input.value as Sensitivity,
+      })
+    })
+  })
 }
 
 async function persistSettings(settings: ExtensionSettings): Promise<void> {
@@ -45,20 +74,14 @@ async function persistSettings(settings: ExtensionSettings): Promise<void> {
 
 async function init(): Promise<void> {
   const categoriesContainer = document.querySelector<HTMLElement>('#categories')
-  const sensitivitySelect = document.querySelector<HTMLSelectElement>('#sensitivity')
-  if (!categoriesContainer || !sensitivitySelect) return
+  const sensitivityContainer = document.querySelector<HTMLElement>('#sensitivity')
+  if (!categoriesContainer || !sensitivityContainer) return
 
   const response = await sendMessage<GetSettingsResponse>({ type: MessageType.GetSettings })
   currentSettings = response?.settings ?? DEFAULT_SETTINGS
 
   renderCategories(categoriesContainer, currentSettings)
-  sensitivitySelect.value = currentSettings.sensitivity
-  sensitivitySelect.addEventListener('change', () => {
-    void persistSettings({
-      ...currentSettings,
-      sensitivity: sensitivitySelect.value as Sensitivity,
-    })
-  })
+  renderSensitivity(sensitivityContainer, currentSettings)
 
   // TODO(settings-phase): render currentSettings.allowList / denyList here.
 }

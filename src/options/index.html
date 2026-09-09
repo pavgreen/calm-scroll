@@ -6,33 +6,50 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <main class="options">
-      <h1>CalmScroll Settings</h1>
+    <main class="page">
+      <header class="page-header">
+        <h1>CalmScroll</h1>
+        <p class="subtitle">
+          Blurs phobia-triggering images using an on-device model. Nothing leaves your browser.
+        </p>
+      </header>
 
-      <section>
-        <h2>Categories</h2>
-        <div id="categories"></div>
+      <section class="card">
+        <div class="card-header">
+          <h2>Categories</h2>
+          <p class="hint">Choose which triggers to blur.</p>
+        </div>
+        <div id="categories" class="category-list"></div>
       </section>
 
-      <section>
-        <h2>Sensitivity</h2>
-        <select id="sensitivity">
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
+      <section class="card">
+        <div class="card-header">
+          <h2>Sensitivity</h2>
+          <p class="hint">Higher sensitivity blurs more, at the cost of more false positives.</p>
+        </div>
+        <div id="sensitivity" class="segmented" role="radiogroup" aria-label="Sensitivity">
+          <label><input type="radio" name="sensitivity" value="low" /><span>Low</span></label>
+          <label><input type="radio" name="sensitivity" value="medium" /><span>Medium</span></label>
+          <label><input type="radio" name="sensitivity" value="high" /><span>High</span></label>
+        </div>
       </section>
 
-      <section>
-        <h2>Allow list</h2>
+      <section class="card">
+        <div class="card-header">
+          <h2>Allow list</h2>
+          <p class="hint">Sites CalmScroll never runs on.</p>
+        </div>
         <!-- TODO(settings-phase): render/edit ExtensionSettings.allowList -->
-        <div id="allow-list"></div>
+        <p class="placeholder">Per-site exceptions are coming soon.</p>
       </section>
 
-      <section>
-        <h2>Deny list</h2>
+      <section class="card">
+        <div class="card-header">
+          <h2>Deny list</h2>
+          <p class="hint">Sites CalmScroll always runs on, even if disabled globally.</p>
+        </div>
         <!-- TODO(settings-phase): render/edit ExtensionSettings.denyList -->
-        <div id="deny-list"></div>
+        <p class="placeholder">Per-site exceptions are coming soon.</p>
       </section>
     </main>
     <script type="module" src="./index.ts"></script>
