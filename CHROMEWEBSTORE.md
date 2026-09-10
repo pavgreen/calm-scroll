@@ -150,9 +150,16 @@ https://github.com/pavgreen/calm-scroll
 
 ### Known Issues / Limitations
 
-- `SIMILARITY_THRESHOLD` (see `src/shared/similarity.ts`) is calibrated
-  against a handful of real images across 2 of 7 categories — expect some
-  misses/false positives until broader validation is done.
+- `SIMILARITY_THRESHOLD` (see `src/shared/similarity.ts`) is confirmed to
+  work on one real reference image per category across all 7 categories —
+  not yet a broad labeled set (no multiple images per category, no
+  near-miss examples) — expect some misses/false positives until that's
+  done.
+- The allow/deny list settings on the options page are a UI stub only —
+  not enforced anywhere yet, so they currently have no effect.
+- Only `<img>` elements are scanned — CSS `background-image`,
+  `<picture>`/`<source>`, and `<video poster>` images are never classified
+  or blurred.
 - Cross-origin image fetches blocked by a host's own CORP/CSP headers fail
   closed (image stays blurred, never resolves) rather than falling back to
   any other signal.

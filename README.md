@@ -220,9 +220,19 @@ source image could not be decoded` for at least some real-world SVGs
   phobia-trigger content, so treating them as unconditionally safe is a
   deliberate, low-risk exemption rather than a workaround-shaped hole.
 - **Known follow-ups**: (1) `SIMILARITY_THRESHOLD` in
-  `src/shared/similarity.ts` is calibrated against a handful of real images
-  across 2 of 7 categories — broader validation is recommended before
-  relying on it. (2) Cross-origin image fetches that are blocked by a
+  `src/shared/similarity.ts` is confirmed (by `category-accuracy.spec.ts`)
+  to work on one real reference image per category across all 7 categories
+  plus 3 neutral images — that's not yet a broad, statistically meaningful
+  labeled set (no multiple images per category, no near-miss/hard-negative
+  examples to validate specificity), so treat it as "confirmed not
+  obviously wrong" rather than "properly tuned." (2) The allow/deny list
+  settings (`ExtensionSettings.allowList`/`denyList`) are a UI stub only —
+  even populated, nothing in `background/index.ts` or `content-script.ts`
+  reads them, so they currently have zero effect regardless of what's in
+  storage. (3) `<img>` is the only scanned image source — CSS
+  `background-image`, `<picture>`/`<source>`, and `<video poster>` are
+  never classified or blurred (see `content-script.ts`'s file header).
+  (4) Cross-origin image fetches that are blocked by a
   host's own CORP/CSP headers (or, per the host_permissions note above, by
   CORS if that permission is ever narrowed) fail closed — the image stays
   blurred forever rather than ever resolving to a real classification — see

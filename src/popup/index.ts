@@ -2,9 +2,9 @@ import { MessageType, sendMessage, type GetSettingsResponse } from '../shared/me
 import { DEFAULT_SETTINGS } from '../shared/categories'
 
 /**
- * Popup skeleton: quick on/off toggle for the whole extension.
- * TODO(settings-phase): reflect per-category toggles here too, or link out
- * to the full options page for that (current plan: link out).
+ * Popup: quick on/off toggle for the whole extension. Per-category toggles,
+ * sensitivity, and blur timing all live on the full options page instead
+ * (the "More settings" link below) rather than being duplicated here.
  */
 
 async function init(): Promise<void> {

@@ -12,9 +12,16 @@ import type { PhobiaCategory, CategorySettings, Sensitivity } from './categories
  * ~0.18-0.28 with a clear positive margin over neutral. Unrelated
  * categories on the same images, and every category on control images with
  * no phobia content (e.g. a logo), stayed at ~0.05-0.15, mostly below
- * neutral. TODO(tuning): this is still a small sample (a handful of images
- * across 2 categories) — revisit with a broader labeled set covering all 7
- * categories before shipping.
+ * neutral.
+ *
+ * tests/e2e/category-accuracy.spec.ts now confirms these thresholds work on
+ * a real reference image for all 7 categories (plus 3 neutral images that
+ * must stay unmatched), not just the 2 sampled above -- but that's still
+ * one positive image per category, not a broad statistically meaningful
+ * sample. TODO(tuning): revisit with multiple labeled images per category
+ * (and near-miss/hard-negative examples, to validate specificity, not just
+ * recall) before treating these numbers as anything more than "confirmed
+ * not obviously wrong."
  */
 export const SIMILARITY_THRESHOLD: Record<Sensitivity, number> = {
   low: 0.22,
