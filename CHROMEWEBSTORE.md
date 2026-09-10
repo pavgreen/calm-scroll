@@ -58,18 +58,25 @@ English
 
 ## Graphics & Assets
 
-| Asset                   | Dimensions          | Status         | Filename                                        |
-| ----------------------- | ------------------- | -------------- | ----------------------------------------------- |
-| Store Icon              | 128×128 PNG         | ✅ Ready       | `icons/icon-128.png` (`npm run icons:generate`) |
-| Screenshot 1 (required) | 1280×800 or 640×400 | ⬜ Not created |                                                 |
-| Screenshot 2            | 1280×800 or 640×400 | ⬜ Not created |                                                 |
-| Small Promo Tile        | 440×280             | ⬜ Not created |                                                 |
+| Asset                   | Dimensions  | Status         | Filename                                        |
+| ----------------------- | ----------- | -------------- | ----------------------------------------------- |
+| Store Icon              | 128×128 PNG | ✅ Ready       | `icons/icon-128.png` (`npm run icons:generate`) |
+| Screenshot 1 (required) | 1280×800    | ✅ Ready       | `screenshots/Settings Light.png`                |
+| Screenshot 2            | 1280×800    | ✅ Ready       | `screenshots/Settings Dark.png`                 |
+| Screenshot 3            | 1280×800    | ✅ Ready       | `screenshots/Spiders.png`                       |
+| Screenshot 4            | 1280×800    | ✅ Ready       | `screenshots/Snakes.png`                        |
+| Small Promo Tile        | 440×280     | ⬜ Not created |                                                 |
 
 ### Screenshot Notes
 
-Show the options page (category toggles + sensitivity) and a real page with
-a blurred image mid-hover-peek — those two communicate the whole product
-faster than the popup alone.
+The options page in both themes, plus two real pages (a spider image
+gallery, a Google Images "snakes" search) with everything blurred — shows
+both the settings and the extension actually working. Originals were raw
+UI/page captures at mismatched sizes; scaled to fit within 1280×800 and
+padded to the exact required dimensions with each page's own background
+color (so the padding is invisible, not an obvious letterbox bar) rather
+than cropped, since cropping any of the four would have cut off real
+content (the bottom of the options page, or rows of the image grid).
 
 ## Permissions Justification
 
