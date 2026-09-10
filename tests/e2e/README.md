@@ -32,8 +32,13 @@ here if either is missing.
   it unblurred (settings-driven behavior, not just classification — note the
   reference image matches both "spiders" and "insects", a real zero-shot
   classifier outcome, not a bug); disabling the extension entirely leaves
-  everything unblurred. These are the load-bearing tests — stable,
-  deterministic-enough to trust in CI. All 4 pass reliably (~30s total).
+  everything unblurred; a genuinely broken image (404) stays blurred rather
+  than being silently revealed (fail-closed regression test — see
+  offscreen/index.ts's handleClassify() doc comment); a real SVG resolves
+  cleanly as benign with no console error (regression test for a decode
+  failure encountered in production — see UNSUPPORTED_DECODE_CONTENT_TYPES
+  in offscreen/index.ts). These are the load-bearing tests — stable,
+  deterministic-enough to trust in CI. All 6 pass reliably (~1 min total).
 - **`startup-display.spec.ts`** — the two `startupDisplay` modes
   specifically: confirms `'blurred'` mode still blurs images immediately at
   first paint (no flash) even though its CSS is now dynamically registered

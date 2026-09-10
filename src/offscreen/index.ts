@@ -69,6 +69,21 @@ function dotProduct(a: number[], b: number[]): number {
 }
 
 /**
+ * Content-types RawImage.fromBlob() (createImageBitmap() under the hood)
+ * can't reliably rasterize in this offscreen-document context — confirmed
+ * empirically: it throws "InvalidStateError: The source image could not be
+ * decoded" for at least some real-world SVGs (e.g. Wikipedia's own tagline
+ * logo, encountered in production). Rather than let that surface as a
+ * classification failure, these are skipped before ever attempting a
+ * decode — see the 'skip' return path in fetchImage() below. SVGs are
+ * vector graphics (icons, logos, diagrams), essentially never photographic
+ * phobia-trigger content, so treating them as unconditionally safe is a
+ * deliberate, low-risk exemption (same spirit as content-script.ts's
+ * small-icon size exemption) rather than a fail-open loophole.
+ */
+const UNSUPPORTED_DECODE_CONTENT_TYPES = ['image/svg+xml']
+
+/**
  * Fetches and decodes an image manually (instead of RawImage.fromURL, which
  * does the same thing internally but swallows the response's status/headers
  * before decode failures). Doing this ourselves surfaces exactly what came
@@ -76,11 +91,17 @@ function dotProduct(a: number[], b: number[]): number {
  * decoded" — e.g. a non-200 status, an unexpected content-type (an HTML
  * block/interstitial page instead of image bytes), or a suspiciously small
  * body — which is otherwise indistinguishable from a genuine decode failure.
+ *
+ * Returns the literal 'skip' (not an error) for known-unsupported content
+ * types — see UNSUPPORTED_DECODE_CONTENT_TYPES above.
  */
-async function fetchImage(imageUrl: string): Promise<RawImage> {
+async function fetchImage(imageUrl: string): Promise<RawImage | 'skip'> {
   const response = await fetch(imageUrl)
   const contentType = response.headers.get('content-type')
   const blob = await response.blob()
+  if (contentType && UNSUPPORTED_DECODE_CONTENT_TYPES.some((t) => contentType.startsWith(t))) {
+    return 'skip'
+  }
   if (!response.ok || !contentType?.startsWith('image/')) {
     console.error(
       `[calm-scroll/offscreen] unexpected response for image fetch: status=${response.status} content-type=${contentType} size=${blob.size}B url=${imageUrl}`,
@@ -104,6 +125,12 @@ async function handleClassify(
     const [processor, model] = await modelPromise
 
     const image = await fetchImage(imageUrl)
+    if (image === 'skip') {
+      // Deliberate exemption, not a failure -- no `error` field, so
+      // content-script.ts's fail-closed check (see its classifyImage() doc
+      // comment) doesn't treat this as an inability to classify.
+      return { isSensitive: false, scores: {}, matchedCategories: [] }
+    }
     const inputs = await processor(image)
     const { image_embeds } = await model(inputs)
     const embedding: number[] = image_embeds.normalize().tolist()[0]
@@ -123,7 +150,14 @@ async function handleClassify(
     return { isSensitive, scores, neutralScore, matchedCategories }
   } catch (err) {
     console.error('[calm-scroll/offscreen] classification failed:', err)
-    // Fail-safe: matches content/index.ts's existing catch-block philosophy.
+    // isSensitive is set to false here as a neutral placeholder, NOT a
+    // safety judgment -- the presence of `error` is what actually matters.
+    // content-script.ts's classifyImage() checks for `error` and fails
+    // CLOSED (treats as sensitive) whenever it's set, regardless of this
+    // isSensitive value; this response shape exists so background.ts's own
+    // catch block (a distinct failure path -- e.g. ensureOffscreenDocument
+    // throwing) can reuse it without duplicating the fail-closed decision
+    // in two places.
     return { isSensitive: false, scores: {}, matchedCategories: [], error: String(err) }
   }
 }

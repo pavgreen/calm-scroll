@@ -104,6 +104,16 @@ function releaseSlot(): void {
  * classification error or timeout resolves true (treat as sensitive)
  * rather than false — an inability to classify is not a confirmation of
  * safety, regardless of which startupDisplay mode is active.
+ *
+ * This covers TWO distinct failure shapes, both treated identically: a
+ * transport-level failure (sendMessage rejects, or the timeout below wins
+ * the race) is caught below; a response that arrives successfully but
+ * carries an `error` field (background/offscreen caught something on their
+ * end -- e.g. the image failed to decode -- and still answered rather than
+ * leaving the request hanging) is checked explicitly, since blindly trusting
+ * `response.isSensitive` there would silently fail OPEN instead: offscreen's
+ * error responses set isSensitive: false as a neutral placeholder, not a
+ * safety judgment -- see handleClassify's catch block in offscreen/index.ts.
  */
 async function classifyImage(imageUrl: string): Promise<boolean> {
   const cached = classificationCache.get(imageUrl)
@@ -126,6 +136,10 @@ async function classifyImage(imageUrl: string): Promise<boolean> {
         }),
         timeout,
       ])
+      if (response.error) {
+        console.error('[calm-scroll/content] classification failed:', response.error)
+        return true // fail closed, see doc comment above
+      }
       return response.isSensitive
     } catch (err) {
       // Logged, not swallowed silently, so failures stay visible during

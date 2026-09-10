@@ -151,4 +151,62 @@ test.describe('classification against a real reference page (Wikipedia Spider ar
       )
       .toBeGreaterThan(0.75)
   })
+
+  test('an image that fails to classify (decode error) stays blurred (fails closed)', async ({
+    page,
+  }) => {
+    // Regression test for a real production bug: offscreen/index.ts's
+    // handleClassify() catch block sets isSensitive: false on any failure
+    // (a neutral placeholder, not a safety judgment -- see its doc comment)
+    // and content-script.ts used to trust that value blindly, so any
+    // classification failure -- not just this one -- silently failed OPEN
+    // (image revealed) instead of closed. Fixed by having classifyImage()
+    // check response.error explicitly. A 404 is a convenient, reliable way
+    // to force a real failure through the full pipeline without mocking.
+    await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'load' })
+    const selector = 'img[data-calm-scroll-test="broken"]'
+    await page.evaluate(() => {
+      const img = document.createElement('img')
+      img.src = 'https://en.wikipedia.org/this-does-not-exist-404-test.jpg'
+      img.dataset.calmScrollTest = 'broken'
+      img.style.width = '200px'
+      img.style.height = '200px'
+      document.body.prepend(img)
+    })
+    await page.locator(selector).scrollIntoViewIfNeeded()
+
+    await expect.poll(() => currentFilter(page, selector), { timeout: 30_000 }).toBe('blur(24px)')
+  })
+
+  test('an SVG image is treated as benign, not a classification failure', async ({ page }) => {
+    // Regression test for a real production bug: RawImage.fromBlob() (via
+    // createImageBitmap()) throws "InvalidStateError: The source image
+    // could not be decoded" for at least some real SVGs -- e.g. Wikipedia's
+    // own tagline logo, encountered in production and reproduced here.
+    // Fixed by skipping the decode attempt entirely for image/svg+xml
+    // (see UNSUPPORTED_DECODE_CONTENT_TYPES in offscreen/index.ts): SVGs are
+    // vector graphics, essentially never photographic phobia-trigger
+    // content, so this resolves cleanly as benign rather than as a
+    // (fail-closed) error.
+    await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'load' })
+    const consoleErrors: string[] = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text())
+    })
+
+    const selector = 'img[data-calm-scroll-test="svg"]'
+    await page.evaluate(() => {
+      const img = document.createElement('img')
+      img.src =
+        'https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-tagline-en-25.svg'
+      img.dataset.calmScrollTest = 'svg'
+      img.style.width = '200px'
+      img.style.height = '200px'
+      document.body.prepend(img)
+    })
+    await page.locator(selector).scrollIntoViewIfNeeded()
+
+    await expect.poll(() => currentFilter(page, selector), { timeout: 30_000 }).toBe('none')
+    expect(consoleErrors.some((e) => /decode failed|classification failed/.test(e))).toBe(false)
+  })
 })

@@ -199,6 +199,26 @@ setup above done first — see `tests/e2e/README.md`.
   `#7C3AED`) — gitignored, produced by `npm run icons:generate`
   (`scripts/generate-icons.mjs`, zero dependencies, fully offline, no
   third-party asset embedded).
+- **Fail-closed enforcement lives in `content-script.ts`, not `offscreen/index.ts`**:
+  a classification failure at the offscreen level (decode error, CORS/CORP
+  block, model error) is reported back with `isSensitive: false` — a
+  neutral placeholder, not a safety judgment — plus an `error` field.
+  `content-script.ts`'s `classifyImage()` is what actually enforces
+  fail-closed, by checking for that `error` field and treating it as
+  sensitive regardless of the `isSensitive` value. This split used to be a
+  real bug (fixed): `classifyImage()` trusted `isSensitive` blindly, so
+  every classification failure silently failed **open** (image revealed)
+  instead of closed — caught via a real SVG decode failure in production
+  (see the next bullet), not by inspection.
+- SVGs are exempted from classification entirely
+  (`UNSUPPORTED_DECODE_CONTENT_TYPES` in `src/offscreen/index.ts`) rather
+  than attempting to decode them: `RawImage.fromBlob()`
+  (`createImageBitmap()` under the hood) throws `InvalidStateError: The
+source image could not be decoded` for at least some real-world SVGs
+  (encountered in production — Wikipedia's own tagline logo). SVGs are
+  vector graphics — icons, logos, diagrams — essentially never photographic
+  phobia-trigger content, so treating them as unconditionally safe is a
+  deliberate, low-risk exemption rather than a workaround-shaped hole.
 - **Known follow-ups**: (1) `SIMILARITY_THRESHOLD` in
   `src/shared/similarity.ts` is calibrated against a handful of real images
   across 2 of 7 categories — broader validation is recommended before
