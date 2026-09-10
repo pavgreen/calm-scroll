@@ -58,25 +58,32 @@ English
 
 ## Graphics & Assets
 
-| Asset                   | Dimensions  | Status         | Filename                                        |
-| ----------------------- | ----------- | -------------- | ----------------------------------------------- |
-| Store Icon              | 128×128 PNG | ✅ Ready       | `icons/icon-128.png` (`npm run icons:generate`) |
-| Screenshot 1 (required) | 1280×800    | ✅ Ready       | `screenshots/Settings Light.png`                |
-| Screenshot 2            | 1280×800    | ✅ Ready       | `screenshots/Settings Dark.png`                 |
-| Screenshot 3            | 1280×800    | ✅ Ready       | `screenshots/Spiders.png`                       |
-| Screenshot 4            | 1280×800    | ✅ Ready       | `screenshots/Snakes.png`                        |
-| Small Promo Tile        | 440×280     | ⬜ Not created |                                                 |
+| Asset                   | Dimensions  | Status   | Filename                                        |
+| ----------------------- | ----------- | -------- | ----------------------------------------------- |
+| Store Icon              | 128×128 PNG | ✅ Ready | `icons/icon-128.png` (`npm run icons:generate`) |
+| Screenshot 1 (required) | 1280×800    | ✅ Ready | `screenshots/Spiders.png`                       |
+| Screenshot 2            | 1280×800    | ✅ Ready | `screenshots/Snakes.png`                        |
+| Screenshot 3            | 1280×800    | ✅ Ready | `screenshots/Settings Light.png`                |
+| Screenshot 4            | 1280×800    | ✅ Ready | `screenshots/Settings Dark.png`                 |
+| Small Promo Tile        | 440×280     | ✅ Ready | `screenshots/Promo Tile.png`                    |
 
 ### Screenshot Notes
 
-The options page in both themes, plus two real pages (a spider image
-gallery, a Google Images "snakes" search) with everything blurred — shows
-both the settings and the extension actually working. Originals were raw
-UI/page captures at mismatched sizes; scaled to fit within 1280×800 and
-padded to the exact required dimensions with each page's own background
-color (so the padding is invisible, not an obvious letterbox bar) rather
-than cropped, since cropping any of the four would have cut off real
-content (the bottom of the options page, or rows of the image grid).
+Leads with the extension actually working (two real pages — a spider image
+gallery, a Google Images "snakes" search — with everything blurred), then
+the options page in both themes. Originals were raw UI/page captures at
+mismatched sizes; scaled to fit within 1280×800 and padded to the exact
+required dimensions with each page's own background color (so the padding
+is invisible, not an obvious letterbox bar) rather than cropped, since
+cropping any of the four would have cut off real content (the bottom of
+the options page, or rows of the image grid).
+
+### Promo Tile Notes
+
+Generated (not a screenshot): brand violet gradient background, the same
+wave mark as the toolbar icon, wordmark + one-line description. Built as
+an HTML file at exactly 440×280 and rendered with Playwright at 3x scale
+before downsampling, for crisp text at that small a size.
 
 ## Permissions Justification
 
