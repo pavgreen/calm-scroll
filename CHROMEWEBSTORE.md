@@ -1,7 +1,9 @@
 # Chrome Web Store Listing — Calm Scroll
 
 > Last Updated: 2026-09-10
-> Status: draft — fields marked TODO need your input before submission.
+> Status: content and assets complete — ready for submission. Not yet
+> submitted; see "Package for upload" in the root README for the
+> remaining build/zip/upload steps.
 
 ## Store Listing
 

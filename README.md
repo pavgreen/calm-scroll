@@ -248,20 +248,15 @@ source image could not be decoded` for at least some real-world SVGs
 ## Before submitting to the Chrome Web Store
 
 `CHROMEWEBSTORE.md` (listing copy, permissions justifications, privacy data
-table) and `PRIVACY.md` (the policy itself) are drafted, but not complete —
-see the `TODO`s in each. Still needed:
+table, developer info, all 5 graphics assets) and `PRIVACY.md` (the policy
+itself, hosted and confirmed live at
+[pavgreen.github.io/calm-scroll/PRIVACY.html](https://pavgreen.github.io/calm-scroll/PRIVACY.html))
+are both content-complete — nothing left to fill in. What's actually left is
+the mechanical submission itself:
 
-- **Host `PRIVACY.md` at a public URL** and put that URL in
-  `CHROMEWEBSTORE.md`'s Privacy Policy section — a raw file in the repo
-  isn't enough; the review team visits the link (GitHub Pages is the
-  easiest option for a repo already on GitHub).
-- **Screenshots + promo tile** — at least one 1280×800 or 640×400
-  screenshot, ideally the options page and a blurred image mid-hover-peek
-  (see `CHROMEWEBSTORE.md`'s Screenshot Notes); a 440×280 small promo tile
-  is recommended but optional.
-- **Developer info** — publisher name, contact email, category — all
-  deliberately left as `TODO` in `CHROMEWEBSTORE.md` rather than guessed.
 - **Version bump** — `0.0.1` is fine for a first upload; every subsequent
   upload needs a strictly higher `version`.
 - **Package for upload**: zip the _contents_ of `dist/` (not the `dist/`
   folder itself) after `npm run build`.
+- **Upload through the [Developer Dashboard](https://chrome.google.com/webstore/devconsole)**,
+  copying each field from `CHROMEWEBSTORE.md` in.
