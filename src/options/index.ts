@@ -13,15 +13,7 @@ const STARTUP_DISPLAY_DESCRIPTIONS: Record<StartupDisplay, string> = {
 }
 
 /**
- * Options page: category toggles, sensitivity, blur timing, allow/deny lists.
- * TODO(settings-phase): wire allow/deny list add/remove UI (structure only
- * for now — see the allow-list/deny-list placeholders in index.html). Note
- * this is a two-part gap, not just a missing UI: allowList/denyList are
- * declared on ExtensionSettings and default to [], but nothing in
- * background/index.ts or content-script.ts reads them yet either -- even a
- * hand-written chrome.storage entry would currently have zero effect on
- * classification. Building the enforcement (hostname matching against the
- * current page) is a separate, larger piece of work from this UI.
+ * Options page: category toggles, sensitivity, blur timing.
  */
 
 let currentSettings: ExtensionSettings = DEFAULT_SETTINGS
@@ -111,8 +103,6 @@ async function init(): Promise<void> {
   renderCategories(categoriesContainer, currentSettings)
   renderSensitivity(sensitivityContainer, currentSettings)
   renderStartupDisplay(startupDisplayContainer, currentSettings)
-
-  // TODO(settings-phase): render currentSettings.allowList / denyList here.
 }
 
 void init()

@@ -46,7 +46,7 @@ Version 0.0.1
 
 **Category**
 
-TODO — likely "Accessibility" (its purpose is reducing distress from phobia-triggering content) or "Productivity."
+Accessibility
 
 **Single Purpose**
 
@@ -118,7 +118,7 @@ https://pavgreen.github.io/calm-scroll/PRIVACY.html
 
 ## Distribution
 
-**Visibility**: TODO (Public / Unlisted / Private)
+**Visibility**: Public
 **Regions**: All regions
 
 ## Developer Info
@@ -129,8 +129,7 @@ TODO
 
 **Contact Email**
 
-TODO — shown publicly on the listing; deliberately left blank here rather
-than guessed.
+pavgreen@gmail.com
 
 **Support URL / Email**
 
@@ -155,8 +154,6 @@ https://github.com/pavgreen/calm-scroll
   not yet a broad labeled set (no multiple images per category, no
   near-miss examples) — expect some misses/false positives until that's
   done.
-- The allow/deny list settings on the options page are a UI stub only —
-  not enforced anywhere yet, so they currently have no effect.
 - Only `<img>` elements are scanned — CSS `background-image`,
   `<picture>`/`<source>`, and `<video poster>` images are never classified
   or blurred.

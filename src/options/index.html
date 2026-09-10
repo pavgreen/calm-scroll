@@ -53,28 +53,6 @@
           <label><input type="radio" name="sensitivity" value="high" /><span>High</span></label>
         </div>
       </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Allow list</h2>
-          <p class="hint">Sites Calm Scroll always runs on, even if disabled globally.</p>
-        </div>
-        <!-- TODO(settings-phase): render/edit ExtensionSettings.allowList. Also
-             unimplemented beyond this UI stub -- nothing in background/index.ts
-             or content-script.ts reads allowList/denyList at all yet, so even
-             with entries in storage they'd have no effect on classification. -->
-        <p class="placeholder">Per-site exceptions are coming soon.</p>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2>Deny list</h2>
-          <p class="hint">Sites Calm Scroll never runs on.</p>
-        </div>
-        <!-- TODO(settings-phase): render/edit ExtensionSettings.denyList -- see
-             the allow list TODO above; same "not enforced yet" caveat applies. -->
-        <p class="placeholder">Per-site exceptions are coming soon.</p>
-      </section>
     </main>
     <script type="module" src="./index.ts"></script>
   </body>

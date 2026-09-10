@@ -57,17 +57,11 @@ export type Sensitivity = 'low' | 'medium' | 'high'
  */
 export type StartupDisplay = 'visible' | 'blurred'
 
-export interface SiteListEntry {
-  hostname: string
-}
-
 export interface ExtensionSettings {
   enabled: boolean
   categories: CategorySettings
   sensitivity: Sensitivity
   startupDisplay: StartupDisplay
-  allowList: SiteListEntry[]
-  denyList: SiteListEntry[]
 }
 
 function defaultCategorySettings(): CategorySettings {
@@ -80,8 +74,6 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   categories: defaultCategorySettings(),
   sensitivity: 'medium',
   startupDisplay: 'visible',
-  allowList: [],
-  denyList: [],
 }
 
 export const CATEGORY_PROMPT_TEMPLATES = _CATEGORY_PROMPT_TEMPLATES as unknown as Record<

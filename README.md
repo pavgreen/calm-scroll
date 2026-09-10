@@ -26,7 +26,7 @@ in the browser; no network calls at runtime.
   (offscreen documents can't be declared in `manifest.json` — they're created
   at runtime via `chrome.offscreen.createDocument`).
 - `src/popup` — quick enable/disable toggle.
-- `src/options` — full settings UI (category toggles, sensitivity, allow/deny lists).
+- `src/options` — full settings UI (category toggles, sensitivity, blur timing).
 - `src/shared` — typed message contracts (`messaging.ts`), the phobia category
   enum + default settings shape (`categories.ts`), zero-shot text prompts per
   category (`prompts.mjs`), and the classification decision logic (`similarity.ts`).
@@ -225,16 +225,13 @@ source image could not be decoded` for at least some real-world SVGs
   plus 3 neutral images — that's not yet a broad, statistically meaningful
   labeled set (no multiple images per category, no near-miss/hard-negative
   examples to validate specificity), so treat it as "confirmed not
-  obviously wrong" rather than "properly tuned." (2) The allow/deny list
-  settings (`ExtensionSettings.allowList`/`denyList`) are a UI stub only —
-  even populated, nothing in `background/index.ts` or `content-script.ts`
-  reads them, so they currently have zero effect regardless of what's in
-  storage. (3) `<img>` is the only scanned image source — CSS
-  `background-image`, `<picture>`/`<source>`, and `<video poster>` are
-  never classified or blurred (see `content-script.ts`'s file header).
-  (4) Cross-origin image fetches that are blocked by a
-  host's own CORP/CSP headers (or, per the host_permissions note above, by
-  CORS if that permission is ever narrowed) fail closed — the image stays
+  obviously wrong" rather than "properly tuned." (2) `<img>` is the only
+  scanned image source — CSS `background-image`, `<picture>`/`<source>`,
+  and `<video poster>` are never classified or blurred (see
+  `content-script.ts`'s file header). (3) Cross-origin image fetches that
+  are blocked by a host's own CORP/CSP headers (or, per the
+  host_permissions note above, by CORS if that permission is ever
+  narrowed) fail closed — the image stays
   blurred forever rather than ever resolving to a real classification — see
   the catch block in `src/offscreen/index.ts`.
 
