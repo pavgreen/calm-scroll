@@ -36,7 +36,7 @@ PRIVACY
 Calm Scroll does not collect, store, or transmit any personal data. All image analysis happens locally on your device using a bundled on-device model — no image or browsing data is ever sent to a server. See the full privacy policy for details.
 
 PERMISSIONS
-"Read and change data on all your websites" — needed to find and blur images on any page you visit, and to load the small amount of code (right-click menu, blur styling) that makes that work. Images are analyzed on-device only.
+"Read and change all your data on all websites" — needed to find and blur images on any page you visit, and to load the small amount of code (right-click menu, blur styling) that makes that work. Images are analyzed on-device only.
 
 SUPPORT
 Found a bug or have a suggestion? Open an issue at https://github.com/pavgreen/calm-scroll/issues.
@@ -111,10 +111,10 @@ faster than the popup alone.
 
 https://pavgreen.github.io/calm-scroll/PRIVACY.html
 
-<!-- Repo is public and GitHub Pages is enabled (legacy Jekyll build,
-     source: main branch root) -- confirm this exact URL resolves after
-     pushing PRIVACY.md's front matter (Jekyll needs it to convert the
-     .md into a real .html page instead of serving raw markdown text). -->
+<!-- Confirmed live: 200, text/html, current content (re-verified
+     2026-09-10). Repo is public, GitHub Pages serves it via a legacy
+     Jekyll build (source: main branch root) using PRIVACY.md's front
+     matter to convert it into a real HTML page. -->
 
 ## Distribution
 
@@ -125,11 +125,11 @@ https://pavgreen.github.io/calm-scroll/PRIVACY.html
 
 **Publisher Name**
 
-TODO
+Green Compass
 
 **Contact Email**
 
-pavgreen@gmail.com
+green.compass.dev@gmail.com
 
 **Support URL / Email**
 
