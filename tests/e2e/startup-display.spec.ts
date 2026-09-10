@@ -58,6 +58,34 @@ test.describe('startupDisplay modes', () => {
     ).toBe('blur(24px)')
   })
 
+  test("'blurred' mode: a <video poster> is also blurred at first paint (not just <img>)", async ({
+    context,
+    extensionId,
+    page,
+  }) => {
+    await setStartupDisplay(context, extensionId, 'blurred')
+
+    await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'domcontentloaded' })
+    const selector = 'video[data-calm-scroll-test="poster"]'
+    await page.evaluate((posterUrl) => {
+      const video = document.createElement('video')
+      video.poster = posterUrl
+      video.dataset.calmScrollTest = 'poster'
+      video.style.width = '200px'
+      video.style.height = '200px'
+      document.body.prepend(video)
+    }, 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Araneus_diadematus_%28Clerck%2C_1757%29.JPG/250px-Araneus_diadematus_%28Clerck%2C_1757%29.JPG')
+
+    const immediateFilter = await page
+      .locator(selector)
+      .evaluate((video) => getComputedStyle(video).filter)
+
+    expect(
+      immediateFilter,
+      "blur.css's video[poster] selector should blur it immediately, same as img",
+    ).toBe('blur(24px)')
+  })
+
   test("'visible' mode (default): images are not blurred at first paint", async ({
     context,
     extensionId,

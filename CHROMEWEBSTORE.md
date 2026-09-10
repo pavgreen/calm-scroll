@@ -154,9 +154,10 @@ https://github.com/pavgreen/calm-scroll
   not yet a broad labeled set (no multiple images per category, no
   near-miss examples) — expect some misses/false positives until that's
   done.
-- Only `<img>` elements are scanned — CSS `background-image`,
-  `<picture>`/`<source>`, and `<video poster>` images are never classified
-  or blurred.
+- `<img>` (including inside `<picture>`) and `<video poster>` images are
+  classified and blurred; CSS `background-image` is not — that would need
+  a broader, riskier DOM/layout change (see README's "Image sources
+  scanned" note).
 - Cross-origin image fetches blocked by a host's own CORP/CSP headers fail
   closed (image stays blurred, never resolves) rather than falling back to
   any other signal.

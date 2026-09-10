@@ -209,4 +209,38 @@ test.describe('classification against a real reference page (Wikipedia Spider ar
     await expect.poll(() => currentFilter(page, selector), { timeout: 30_000 }).toBe('none')
     expect(consoleErrors.some((e) => /decode failed|classification failed/.test(e))).toBe(false)
   })
+
+  test('a <video poster> is classified and blurred the same as an <img>', async ({ page }) => {
+    await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'load' })
+    const selector = 'video[data-calm-scroll-test="poster"]'
+    await page.evaluate((posterUrl) => {
+      const video = document.createElement('video')
+      video.poster = posterUrl
+      video.dataset.calmScrollTest = 'poster'
+      video.style.width = '200px'
+      video.style.height = '200px'
+      document.body.prepend(video)
+    }, 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Araneus_diadematus_%28Clerck%2C_1757%29.JPG/250px-Araneus_diadematus_%28Clerck%2C_1757%29.JPG')
+    await page.locator(selector).scrollIntoViewIfNeeded()
+
+    await expect.poll(() => currentFilter(page, selector), { timeout: 45_000 }).toBe('blur(24px)')
+  })
+
+  test('a <video> with no poster is left alone entirely', async ({ page }) => {
+    await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'load' })
+    const selector = 'video[data-calm-scroll-test="no-poster"]'
+    await page.evaluate(() => {
+      const video = document.createElement('video')
+      video.dataset.calmScrollTest = 'no-poster'
+      video.style.width = '200px'
+      video.style.height = '200px'
+      document.body.prepend(video)
+    })
+    await page.locator(selector).scrollIntoViewIfNeeded()
+
+    // No poster means nothing to classify -- observeVideo() skips it
+    // entirely, so it should never pick up either blur class.
+    await page.waitForTimeout(5_000)
+    expect(await currentFilter(page, selector)).toBe('none')
+  })
 })

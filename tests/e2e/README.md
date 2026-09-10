@@ -37,15 +37,18 @@ here if either is missing.
   offscreen/index.ts's handleClassify() doc comment); a real SVG resolves
   cleanly as benign with no console error (regression test for a decode
   failure encountered in production — see UNSUPPORTED_DECODE_CONTENT_TYPES
-  in offscreen/index.ts). These are the load-bearing tests — stable,
-  deterministic-enough to trust in CI. All 6 pass reliably (~1 min total).
+  in offscreen/index.ts); a `<video poster>` is classified and blurred the
+  same as an `<img>`, and a `<video>` with no poster is left alone entirely
+  (see `observeVideo()` in content-script.ts). These are the load-bearing
+  tests — stable, deterministic-enough to trust in CI. All 8 pass reliably
+  (~1.5 min total).
 - **`startup-display.spec.ts`** — the two `startupDisplay` modes
-  specifically: confirms `'blurred'` mode still blurs images immediately at
-  first paint (no flash) even though its CSS is now dynamically registered
-  via `chrome.scripting` rather than a static manifest entry; confirms
-  `'visible'` mode never does; confirms the right-click toggle still works
-  correctly in `'visible'` mode (it toggles a different class than
-  `'blurred'` mode does — see `content-script.ts`).
+  specifically: confirms `'blurred'` mode still blurs images (and video
+  posters) immediately at first paint (no flash) even though its CSS is now
+  dynamically registered via `chrome.scripting` rather than a static
+  manifest entry; confirms `'visible'` mode never does; confirms the
+  right-click toggle still works correctly in `'visible'` mode (it toggles
+  a different class than `'blurred'` mode does — see `content-script.ts`).
 - **`category-accuracy.spec.ts`** — one positive real-world reference image
   per phobia category (all 7), plus 3 clearly benign images (food, two
   landscapes) that must never match anything. Classifies directly against

@@ -9,8 +9,19 @@ import { DEFAULT_SETTINGS, type StartupDisplay } from '../shared/categories'
 
 /**
  * Content script.
- * TODO(dom-phase): also scan CSS background-image and <picture>/<video poster>
- * sources, not just <img> elements.
+ *
+ * Image sources scanned: <img> (including ones inside <picture> -- the
+ * browser always resolves those down to the inner <img>'s currentSrc,
+ * which the existing <img> scan already reads, so no separate handling is
+ * needed there) and <video poster> (see observeVideo() below). TODO(dom-phase):
+ * CSS background-image is NOT scanned -- deliberately out of scope for now:
+ * unlike <img>/<video poster>, there's no cheap way to enumerate candidate
+ * elements without walking/observing computed styles broadly, and blurring
+ * one cleanly (without also blurring any foreground text/content layered
+ * over it) needs a synthetic overlay element, not just a CSS class on the
+ * element itself -- a meaningfully bigger and riskier change than either of
+ * the two sources above, given how much it'd touch on arbitrary third-party
+ * page layouts.
  *
  * Blurring behavior depends on the current startupDisplay setting (see
  * categories.ts's doc comment) -- fetched once at init() and cached in
@@ -62,12 +73,12 @@ let currentMode: StartupDisplay = DEFAULT_SETTINGS.startupDisplay
 function injectSensitiveImageStyles(): void {
   const style = document.createElement('style')
   style.textContent = `
-    img.${SENSITIVE_CLASS} {
+    img.${SENSITIVE_CLASS}, video.${SENSITIVE_CLASS} {
       filter: blur(24px) !important;
       transition: filter 0.15s ease;
       cursor: pointer;
     }
-    img.${SENSITIVE_CLASS}:hover {
+    img.${SENSITIVE_CLASS}:hover, video.${SENSITIVE_CLASS}:hover {
       filter: blur(6px) !important;
     }
   `
@@ -166,39 +177,66 @@ function isLikelyIcon(img: HTMLImageElement): boolean {
   )
 }
 
+/**
+ * Applies a completed classification result to an element -- shared by both
+ * <img> and <video poster> (see applyBlurIfNeeded/applyBlurIfNeededForVideo
+ * below), since the class-toggling logic itself doesn't depend on which.
+ */
+function applySensitivityResult(
+  el: HTMLImageElement | HTMLVideoElement,
+  isSensitive: boolean,
+): void {
+  if (currentMode === 'blurred') {
+    if (!isSensitive) el.classList.add(SAFE_CLASS) // confirmed safe -> reveal
+  } else if (isSensitive) {
+    el.classList.add(SENSITIVE_CLASS) // confirmed sensitive -> blur
+  }
+}
+
 function applyBlurIfNeeded(img: HTMLImageElement): void {
   const src = img.currentSrc || img.src
   if (!src) return
-  void classifyImage(src).then((isSensitive) => {
-    if (currentMode === 'blurred') {
-      if (!isSensitive) img.classList.add(SAFE_CLASS) // confirmed safe -> reveal
-    } else if (isSensitive) {
-      img.classList.add(SENSITIVE_CLASS) // confirmed sensitive -> blur
-    }
-  })
+  void classifyImage(src).then((isSensitive) => applySensitivityResult(img, isSensitive))
 }
 
-// Only classify images once they're actually on/near screen, instead of
-// every <img> in the DOM up front — the real fix for large/lazy-loaded
-// pages (image search results, infinite-scroll feeds), not just a
-// concurrency band-aid.
-const observedImages = new WeakSet<HTMLImageElement>()
+/**
+ * Classifies a <video>'s poster attribute -- the static thumbnail shown
+ * before playback -- the same way an <img> is classified. Deliberately
+ * scoped to just that: this extension only ever looks at the poster frame,
+ * never the video content itself (out of scope -- see this file's header
+ * comment), so a video's blur state reflects whether its poster looked
+ * sensitive, not anything about what plays once it starts.
+ */
+function applyBlurIfNeededForVideo(video: HTMLVideoElement): void {
+  const poster = video.poster
+  if (!poster) return
+  void classifyImage(poster).then((isSensitive) => applySensitivityResult(video, isSensitive))
+}
+
+// Only classify images/video posters once they're actually on/near screen,
+// instead of every candidate element in the DOM up front — the real fix for
+// large/lazy-loaded pages (image search results, infinite-scroll feeds),
+// not just a concurrency band-aid. One shared observer for both element
+// types: the dispatch-by-type happens in the callback, not via separate
+// observer instances.
+const observedMedia = new WeakSet<HTMLImageElement | HTMLVideoElement>()
 
 const intersectionObserver = new IntersectionObserver(
   (entries, observer) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue
-      const img = entry.target as HTMLImageElement
-      observer.unobserve(img)
-      applyBlurIfNeeded(img)
+      const el = entry.target
+      observer.unobserve(el)
+      if (el instanceof HTMLImageElement) applyBlurIfNeeded(el)
+      else if (el instanceof HTMLVideoElement) applyBlurIfNeededForVideo(el)
     }
   },
-  { rootMargin: '200px' }, // start classifying just before an image scrolls into view
+  { rootMargin: '200px' }, // start classifying just before an element scrolls into view
 )
 
 function observeImage(img: HTMLImageElement): void {
-  if (observedImages.has(img)) return
-  observedImages.add(img)
+  if (observedMedia.has(img)) return
+  observedMedia.add(img)
   if (isLikelyIcon(img)) {
     // In 'blurred' mode, icons need SAFE_CLASS to override the CSS
     // default's blur. In 'visible' mode there's nothing to do -- icons are
@@ -211,8 +249,22 @@ function observeImage(img: HTMLImageElement): void {
   intersectionObserver.observe(img)
 }
 
-function scanExistingImages(): void {
+function observeVideo(video: HTMLVideoElement): void {
+  // No poster means no static frame to classify -- left alone entirely,
+  // same as blur.css's video[poster] selector (which, being an attribute
+  // selector, never applies to a poster-less <video> either). A poster
+  // attribute added later via JS after this element was already scanned
+  // without one is a known gap, not handled here -- same scope limitation
+  // <img> already has for a src swapped in after the fact.
+  if (!video.poster) return
+  if (observedMedia.has(video)) return
+  observedMedia.add(video)
+  intersectionObserver.observe(video)
+}
+
+function scanExistingMedia(): void {
   document.querySelectorAll('img').forEach((img) => observeImage(img))
+  document.querySelectorAll('video').forEach((video) => observeVideo(video))
 }
 
 function observeDom(): void {
@@ -221,8 +273,11 @@ function observeDom(): void {
       mutation.addedNodes.forEach((node) => {
         if (node instanceof HTMLImageElement) {
           observeImage(node)
+        } else if (node instanceof HTMLVideoElement) {
+          observeVideo(node)
         } else if (node instanceof HTMLElement) {
           node.querySelectorAll('img').forEach((img) => observeImage(img))
+          node.querySelectorAll('video').forEach((video) => observeVideo(video))
         }
       })
     }
@@ -272,7 +327,7 @@ async function init(): Promise<void> {
     console.error('[calm-scroll/content] failed to fetch settings, using default mode:', err)
   }
 
-  scanExistingImages()
+  scanExistingMedia()
   observeDom()
 }
 

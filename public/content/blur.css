@@ -16,16 +16,22 @@
  * script files it discovers in manifest.json, and this one is no longer
  * declared there.
  */
-img {
+/* video[poster] (not a bare `video` selector): a <video> with no poster has
+   no static frame to classify, so it's left alone entirely -- see
+   observeVideo() in content-script.ts. */
+img,
+video[poster] {
   filter: blur(24px) !important;
   transition: filter 0.15s ease;
   cursor: pointer;
 }
 
-img:hover {
+img:hover,
+video[poster]:hover {
   filter: blur(6px) !important;
 }
 
-img.calm-scroll-safe {
+img.calm-scroll-safe,
+video[poster].calm-scroll-safe {
   filter: none !important;
 }

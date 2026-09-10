@@ -219,17 +219,27 @@ source image could not be decoded` for at least some real-world SVGs
   vector graphics — icons, logos, diagrams — essentially never photographic
   phobia-trigger content, so treating them as unconditionally safe is a
   deliberate, low-risk exemption rather than a workaround-shaped hole.
+- **Image sources scanned**: `<img>` (including ones inside `<picture>` —
+  the browser always resolves those down to the inner `<img>`'s
+  `currentSrc`, which the existing scan already reads, so no separate
+  handling was needed there) and `<video poster>` (classified the same way
+  as an `<img>`; a `<video>` with no `poster` attribute is left alone
+  entirely — see `observeVideo()` in `content-script.ts`). **Not scanned**:
+  CSS `background-image` — deliberately out of scope, since unlike the two
+  sources above there's no cheap way to enumerate candidate elements
+  without broadly walking/observing computed styles, and blurring one
+  cleanly (without also blurring any foreground text/content layered over
+  it) needs a synthetic overlay element, not just a CSS class — a
+  meaningfully bigger and riskier change given how much it'd touch on
+  arbitrary third-party page layouts.
 - **Known follow-ups**: (1) `SIMILARITY_THRESHOLD` in
   `src/shared/similarity.ts` is confirmed (by `category-accuracy.spec.ts`)
   to work on one real reference image per category across all 7 categories
   plus 3 neutral images — that's not yet a broad, statistically meaningful
   labeled set (no multiple images per category, no near-miss/hard-negative
   examples to validate specificity), so treat it as "confirmed not
-  obviously wrong" rather than "properly tuned." (2) `<img>` is the only
-  scanned image source — CSS `background-image`, `<picture>`/`<source>`,
-  and `<video poster>` are never classified or blurred (see
-  `content-script.ts`'s file header). (3) Cross-origin image fetches that
-  are blocked by a host's own CORP/CSP headers (or, per the
+  obviously wrong" rather than "properly tuned." (2) Cross-origin image
+  fetches that are blocked by a host's own CORP/CSP headers (or, per the
   host_permissions note above, by CORS if that permission is ever
   narrowed) fail closed — the image stays
   blurred forever rather than ever resolving to a real classification — see
