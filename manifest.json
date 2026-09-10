@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Calm Scroll",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Blurs phobia images (spiders, snakes, insects, gore, needles, clowns, dogs) with on-device ML. No network calls at runtime.",
   "action": {
     "default_popup": "src/popup/index.html",

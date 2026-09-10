@@ -1,6 +1,6 @@
 {
   "name": "calm-scroll",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Chrome extension (MV3) that blurs phobia-triggering images using on-device ML.",

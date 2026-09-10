@@ -254,8 +254,8 @@ itself, hosted and confirmed live at
 are both content-complete — nothing left to fill in. What's actually left is
 the mechanical submission itself:
 
-- **Version bump** — `0.0.1` is fine for a first upload; every subsequent
-  upload needs a strictly higher `version`.
+- **Version bump** — already at `1.0.0` for this first upload; every
+  subsequent upload needs a strictly higher `version`.
 - **Package for upload**: zip the _contents_ of `dist/` (not the `dist/`
   folder itself) after `npm run build`.
 - **Upload through the [Developer Dashboard](https://chrome.google.com/webstore/devconsole)**,

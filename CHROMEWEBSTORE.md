@@ -43,7 +43,7 @@ PERMISSIONS
 SUPPORT
 Found a bug or have a suggestion? Open an issue at https://github.com/pavgreen/calm-scroll/issues.
 
-Version 0.0.1
+Version 1.0.0
 ```
 
 **Category**
@@ -157,9 +157,9 @@ https://github.com/pavgreen/calm-scroll
 
 ## Version History
 
-| Version | Date | Changes            | Status |
-| ------- | ---- | ------------------ | ------ |
-| 0.0.1   |      | Initial submission | Draft  |
+| Version | Date       | Changes            | Status |
+| ------- | ---------- | ------------------ | ------ |
+| 1.0.0   | 2026-09-10 | Initial submission | Draft  |
 
 ## Review Notes
 
