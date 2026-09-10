@@ -4,7 +4,13 @@ import {
   PHOBIA_CATEGORIES,
   type ExtensionSettings,
   type Sensitivity,
+  type StartupDisplay,
 } from '../shared/categories'
+
+const STARTUP_DISPLAY_DESCRIPTIONS: Record<StartupDisplay, string> = {
+  visible: 'Images display normally; a sensitive one is blurred once it’s detected.',
+  blurred: 'Every image is blurred immediately and revealed once confirmed safe.',
+}
 
 /**
  * Options page: category toggles, sensitivity, allow/deny lists.
@@ -67,6 +73,21 @@ function renderSensitivity(container: HTMLElement, settings: ExtensionSettings):
   })
 }
 
+function renderStartupDisplay(container: HTMLElement, settings: ExtensionSettings): void {
+  const description = document.querySelector<HTMLElement>('#startup-display-description')
+  const inputs = container.querySelectorAll<HTMLInputElement>('input[name="startup-display"]')
+  inputs.forEach((input) => {
+    input.checked = input.value === settings.startupDisplay
+    input.addEventListener('change', () => {
+      if (!input.checked) return
+      const startupDisplay = input.value as StartupDisplay
+      if (description) description.textContent = STARTUP_DISPLAY_DESCRIPTIONS[startupDisplay]
+      void persistSettings({ ...currentSettings, startupDisplay })
+    })
+  })
+  if (description) description.textContent = STARTUP_DISPLAY_DESCRIPTIONS[settings.startupDisplay]
+}
+
 async function persistSettings(settings: ExtensionSettings): Promise<void> {
   currentSettings = settings
   await sendMessage({ type: MessageType.SettingsUpdated, settings })
@@ -75,13 +96,15 @@ async function persistSettings(settings: ExtensionSettings): Promise<void> {
 async function init(): Promise<void> {
   const categoriesContainer = document.querySelector<HTMLElement>('#categories')
   const sensitivityContainer = document.querySelector<HTMLElement>('#sensitivity')
-  if (!categoriesContainer || !sensitivityContainer) return
+  const startupDisplayContainer = document.querySelector<HTMLElement>('#startup-display')
+  if (!categoriesContainer || !sensitivityContainer || !startupDisplayContainer) return
 
   const response = await sendMessage<GetSettingsResponse>({ type: MessageType.GetSettings })
   currentSettings = response?.settings ?? DEFAULT_SETTINGS
 
   renderCategories(categoriesContainer, currentSettings)
   renderSensitivity(sensitivityContainer, currentSettings)
+  renderStartupDisplay(startupDisplayContainer, currentSettings)
 
   // TODO(settings-phase): render currentSettings.allowList / denyList here.
 }

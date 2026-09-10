@@ -20,6 +20,14 @@ const KNOWN_SPIDER_IMAGE_SELECTOR = 'img[src*="Araneus_diadematus"]'
  * handler reads settings from storage on every request regardless of how
  * they got there, so this exercises the same "responds to configured
  * settings" behavior without depending on the unreliable self-send path.
+ *
+ * NOTE: this does NOT trigger syncBlurCssRegistration (background/index.ts) --
+ * that only runs off the SETTINGS_UPDATED message itself, not a raw storage
+ * write, so a test that needs the *startupDisplay*-driven document_start CSS
+ * to actually change should go through the options page UI instead (see
+ * startup-display.spec.ts). Tests in this file that only exercise
+ * categories/sensitivity/enabled are unaffected, since those are read fresh
+ * from storage on every classify request regardless of how they got saved.
  */
 async function updateSettings(
   serviceWorker: import('@playwright/test').Worker,
@@ -28,28 +36,14 @@ async function updateSettings(
   await serviceWorker.evaluate(async (s) => chrome.storage.local.set({ settings: s }), settings)
 }
 
-/**
- * Polls an image's computed filter, returning 'safe' as soon as it's
- * revealed, or 'blurred' if it's still blurred once the timeout elapses
- * (i.e. it either stayed sensitive/pending for the whole window, which is
- * exactly what the "should stay blurred" tests below want to confirm).
- */
-async function waitForClassification(
+async function currentFilter(
   page: import('@playwright/test').Page,
-  imgSelector: string,
-  timeoutMs = 45_000,
-): Promise<'blurred' | 'safe'> {
-  const deadline = Date.now() + timeoutMs
-  let filter = 'blur(24px)'
-  while (Date.now() < deadline) {
-    filter = await page
-      .locator(imgSelector)
-      .first()
-      .evaluate((img) => getComputedStyle(img).filter)
-    if (filter === 'none') return 'safe'
-    await page.waitForTimeout(1000)
-  }
-  return filter === 'none' ? 'safe' : 'blurred'
+  selector: string,
+): Promise<string> {
+  return page
+    .locator(selector)
+    .first()
+    .evaluate((img) => getComputedStyle(img).filter)
 }
 
 test.describe('classification against a real reference page (Wikipedia Spider article)', () => {
@@ -62,36 +56,33 @@ test.describe('classification against a real reference page (Wikipedia Spider ar
     await updateSettings(serviceWorker, DEFAULT_SETTINGS)
   })
 
-  test('a real spider photo is blurred and stays blurred at default settings', async ({ page }) => {
+  test('a real spider photo is classified as sensitive and ends up blurred at default settings', async ({
+    page,
+  }) => {
     await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'load' })
     await page.locator(KNOWN_SPIDER_IMAGE_SELECTOR).first().scrollIntoViewIfNeeded()
 
-    const state = await waitForClassification(page, KNOWN_SPIDER_IMAGE_SELECTOR)
-    expect(state, 'a real spider photo should be classified as sensitive and stay blurred').toBe(
-      'blurred',
-    )
+    // DEFAULT_SETTINGS.startupDisplay is 'visible' -- the image starts
+    // unblurred and only becomes blurred once classification confirms it's
+    // sensitive, so the assertion here is on the settled end state, not an
+    // immediate one (that direction is covered explicitly in
+    // startup-display.spec.ts).
+    await expect
+      .poll(() => currentFilter(page, KNOWN_SPIDER_IMAGE_SELECTOR), { timeout: 45_000 })
+      .toBe('blur(24px)')
   })
 
-  test('non-photo UI chrome (small icons) is never left blurred', async ({ page }) => {
+  test('non-photo UI chrome (small icons) is never blurred', async ({ page }) => {
     await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'load' })
     // The Wikipedia wordmark is a small logo present on every article; it's
-    // below the 32px icon-exclusion threshold in content-script.ts and
-    // should be marked safe immediately, without ever going through
-    // classification.
+    // below the 32px icon-exclusion threshold in content-script.ts and is
+    // excluded from classification entirely (observeImage's isLikelyIcon
+    // short-circuit), so it should never be blurred in the first place.
     const selector = 'img[src*="wikipedia-wordmark"]'
-    await expect
-      .poll(
-        async () =>
-          page
-            .locator(selector)
-            .first()
-            .evaluate((img) => getComputedStyle(img).filter),
-        { timeout: 5_000 },
-      )
-      .toBe('none')
+    await expect.poll(() => currentFilter(page, selector), { timeout: 5_000 }).toBe('none')
   })
 
-  test('settings response: disabling its matching categories reveals a previously-blurred spider photo', async ({
+  test('settings response: disabling its matching categories keeps a spider photo unblurred', async ({
     page,
     serviceWorker,
   }) => {
@@ -99,7 +90,7 @@ test.describe('classification against a real reference page (Wikipedia Spider ar
     // "insects" (a real, expected zero-shot classifier behavior -- spiders
     // are visually close enough to insects to also cross that bar; see
     // similarity.ts's SIMILARITY_THRESHOLD doc comment). Disabling only
-    // "spiders" isn't enough to reveal it -- both need to be off.
+    // "spiders" isn't enough -- both need to be off.
     await updateSettings(serviceWorker, {
       ...DEFAULT_SETTINGS,
       categories: { ...DEFAULT_SETTINGS.categories, spiders: false, insects: false },
@@ -108,14 +99,19 @@ test.describe('classification against a real reference page (Wikipedia Spider ar
     await page.goto(SPIDER_ARTICLE_URL, { waitUntil: 'load' })
     await page.locator(KNOWN_SPIDER_IMAGE_SELECTOR).first().scrollIntoViewIfNeeded()
 
-    const state = await waitForClassification(page, KNOWN_SPIDER_IMAGE_SELECTOR)
+    // With every category it matches disabled, classification never reports
+    // it sensitive, so at default (visible) startupDisplay it should simply
+    // stay unblurred throughout -- there's no "reveal" transition to wait
+    // for the way there would be in 'blurred' mode, so this asserts the
+    // settled state stays 'none' across a real wait, not just an instant.
+    await page.waitForTimeout(8_000)
     expect(
-      state,
-      'the same image that stays blurred at default settings should be revealed once every category it matches is disabled',
-    ).toBe('safe')
+      await currentFilter(page, KNOWN_SPIDER_IMAGE_SELECTOR),
+      'the same image that ends up blurred at default settings should stay unblurred once every category it matches is disabled',
+    ).toBe('none')
   })
 
-  test('settings response: disabling the extension entirely reveals every image', async ({
+  test('settings response: disabling the extension entirely leaves every image unblurred', async ({
     page,
     serviceWorker,
   }) => {
@@ -134,12 +130,13 @@ test.describe('classification against a real reference page (Wikipedia Spider ar
     }
 
     // With the extension disabled, background short-circuits every classify
-    // request to isSensitive:false, so nothing should stay blurred. The
-    // known reference image is the load-bearing assertion; the "almost
+    // request to isSensitive:false, so nothing should ever become blurred.
+    // The known reference image is the load-bearing assertion; the "almost
     // everything" check tolerates Wikipedia's donation banner, which loads
     // asynchronously and can land after the scroll range above was measured
     // -- unrelated to the settings-response behavior this test verifies.
-    expect(await waitForClassification(page, KNOWN_SPIDER_IMAGE_SELECTOR)).toBe('safe')
+    await page.waitForTimeout(8_000)
+    expect(await currentFilter(page, KNOWN_SPIDER_IMAGE_SELECTOR)).toBe('none')
 
     await expect
       .poll(
@@ -147,8 +144,8 @@ test.describe('classification against a real reference page (Wikipedia Spider ar
           const filters = await page
             .locator('img')
             .evaluateAll((imgs) => imgs.map((img) => getComputedStyle(img).filter))
-          const revealed = filters.filter((f) => f === 'none').length
-          return filters.length > 0 && revealed / filters.length
+          const unblurred = filters.filter((f) => f === 'none').length
+          return filters.length > 0 && unblurred / filters.length
         },
         { timeout: 20_000, intervals: [500, 1000, 2000] },
       )

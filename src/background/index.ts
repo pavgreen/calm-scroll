@@ -13,14 +13,59 @@ import { DEFAULT_SETTINGS, type ExtensionSettings } from '../shared/categories'
 const SETTINGS_STORAGE_KEY = 'settings'
 const OFFSCREEN_URL = 'src/offscreen/index.html'
 const TOGGLE_MENU_ID = 'calm-scroll-toggle-image-blur'
+const BLUR_CSS_SCRIPT_ID = 'calm-scroll-blur-css'
+const BLUR_CSS_PATH = 'content/blur.css'
 
+/**
+ * Merges stored settings over DEFAULT_SETTINGS field-by-field, rather than
+ * an all-or-nothing fallback -- a settings object saved before a new field
+ * (like startupDisplay) existed would otherwise come back with that field
+ * `undefined` forever, since chrome.storage just returns whatever shape was
+ * last written. This makes adding a new setting later safe without a
+ * dedicated migration step each time.
+ */
 async function getSettings(): Promise<ExtensionSettings> {
   const stored = await chrome.storage.local.get(SETTINGS_STORAGE_KEY)
-  return (stored[SETTINGS_STORAGE_KEY] as ExtensionSettings | undefined) ?? DEFAULT_SETTINGS
+  const saved = stored[SETTINGS_STORAGE_KEY] as Partial<ExtensionSettings> | undefined
+  return { ...DEFAULT_SETTINGS, ...saved }
 }
 
 async function saveSettings(settings: ExtensionSettings): Promise<void> {
   await chrome.storage.local.set({ [SETTINGS_STORAGE_KEY]: settings })
+}
+
+/**
+ * Registers/unregisters the "blurred" startupDisplay mode's document_start
+ * CSS (public/content/blur.css) to match current settings. Dynamic
+ * (chrome.scripting) rather than a static manifest.json content_scripts
+ * entry, since it now only applies in one of two configurable modes -- see
+ * categories.ts's StartupDisplay doc comment. Still targets document_start,
+ * so when active it blurs every image before first paint exactly like a
+ * static entry would; the "visible" mode needs no equivalent registration
+ * here since it has nothing to inject before first paint (content-script.ts
+ * adds its own small stylesheet for the sensitive-image blur rule once it
+ * runs, at document_idle -- no flash-of-content risk in that direction,
+ * since starting visible is that mode's whole point).
+ */
+async function syncBlurCssRegistration(settings: ExtensionSettings): Promise<void> {
+  const shouldRegister = settings.enabled && settings.startupDisplay === 'blurred'
+  const existing = await chrome.scripting.getRegisteredContentScripts({
+    ids: [BLUR_CSS_SCRIPT_ID],
+  })
+  const isRegistered = existing.length > 0
+
+  if (shouldRegister && !isRegistered) {
+    await chrome.scripting.registerContentScripts([
+      {
+        id: BLUR_CSS_SCRIPT_ID,
+        matches: ['<all_urls>'],
+        css: [BLUR_CSS_PATH],
+        runAt: 'document_start',
+      },
+    ])
+  } else if (!shouldRegister && isRegistered) {
+    await chrome.scripting.unregisterContentScripts({ ids: [BLUR_CSS_SCRIPT_ID] })
+  }
 }
 
 /**
@@ -41,7 +86,10 @@ async function warmUpIfEnabled(): Promise<void> {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  void getSettings().then((settings) => saveSettings(settings))
+  void getSettings().then((settings) => {
+    void saveSettings(settings) // heals any pre-existing settings missing newer fields
+    void syncBlurCssRegistration(settings)
+  })
   void warmUpIfEnabled()
 
   // Right-click action on any image, instead of a plain click on the image
@@ -51,7 +99,8 @@ chrome.runtime.onInstalled.addListener(() => {
   // automatically; no positioning to configure on our end.
   //
   // A single toggle item rather than two fixed-effect items: the content
-  // script (which owns SAFE_CLASS) is the one place that actually knows an
+  // script (which owns the blur/reveal classes -- which one depends on the
+  // current startupDisplay mode) is the one place that actually knows an
   // image's current blur state, so it can flip it directly — no need for
   // chrome.contextMenus.onShown (not available in the target Chrome
   // version) or for background to guess a target state.
@@ -69,8 +118,12 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // onInstalled only fires on install/update, not on every browser launch --
 // this is what actually warms the model up on a normal day-to-day session.
+// Dynamic content script registrations (syncBlurCssRegistration) do persist
+// across browser restarts on their own, but re-syncing here is cheap and
+// defensive rather than assuming that always holds.
 chrome.runtime.onStartup.addListener(() => {
   void warmUpIfEnabled()
+  void getSettings().then((settings) => syncBlurCssRegistration(settings))
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -188,6 +241,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
     }
     case MessageType.SettingsUpdated: {
       void saveSettings(message.settings).then(() => sendResponse(undefined))
+      void syncBlurCssRegistration(message.settings)
       // Covers re-enabling after the extension was off when the session
       // started (so onStartup's warm-up saw enabled:false and skipped it) --
       // ensureOffscreenDocument() is a no-op if already warm.

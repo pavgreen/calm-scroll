@@ -3,21 +3,34 @@ import {
   sendMessage,
   type ClassifyImageResponse,
   type ExtensionMessage,
+  type GetSettingsResponse,
 } from '../shared/messaging'
+import { DEFAULT_SETTINGS, type StartupDisplay } from '../shared/categories'
 
 /**
  * Content script.
  * TODO(dom-phase): also scan CSS background-image and <picture>/<video poster>
  * sources, not just <img> elements.
  *
- * Blurring itself is NOT done here — it's a CSS default (blur.css, injected
- * at document_start, the earliest possible point) so every image starts
- * blurred before this script even runs, let alone before classification
- * completes. This script's only job re: blurring is to add SAFE_CLASS once
- * an image is actively confirmed safe, which overrides the CSS blur.
+ * Blurring behavior depends on the current startupDisplay setting (see
+ * categories.ts's doc comment) -- fetched once at init() and cached in
+ * currentMode for the rest of this page's lifetime:
+ * - 'blurred': every image starts blurred via a CSS default (public/content/
+ *   blur.css, dynamically registered at document_start by background/
+ *   index.ts -- the earliest possible point) before this script even runs,
+ *   let alone before classification completes. This script's only job
+ *   re: blurring is to add SAFE_CLASS once an image is actively confirmed
+ *   safe, which overrides the CSS blur.
+ * - 'visible' (default): images display normally; this script adds
+ *   SENSITIVE_CLASS (styled by the small stylesheet injected below) once an
+ *   image is actively confirmed sensitive.
+ * Either way, classification itself fails CLOSED (see classifyImage's doc
+ * comment) -- the mode only changes which state an image starts in and
+ * which class gets added on a positive result, not the fail-safe direction.
  */
 
 const SAFE_CLASS = 'calm-scroll-safe'
+const SENSITIVE_CLASS = 'calm-scroll-sensitive'
 const CLASSIFY_TIMEOUT_MS = 20000
 // Only one offscreen document/model instance backs every tab's requests, so
 // bound how many classify calls are in flight at once — without this, a
@@ -28,9 +41,38 @@ const MAX_CONCURRENT_CLASSIFICATIONS = 4
 // Images at or below this size in either dimension are treated as icons/UI
 // chrome (nav buttons, logos, badges) rather than content, and are marked
 // safe immediately without classification — otherwise every nav icon/logo
-// on a page would sit blurred (via blur.css's default) until this script
-// gets around to them, for no safety benefit.
+// on a page would sit blurred (in 'blurred' mode) until this script gets
+// around to them, for no safety benefit.
 const MIN_CONTENT_DIMENSION_PX = 32
+
+// Resolved once at init() from the current settings; defaults to
+// DEFAULT_SETTINGS' mode in the unlikely event the toggle message listener
+// below fires before init()'s settings fetch resolves.
+let currentMode: StartupDisplay = DEFAULT_SETTINGS.startupDisplay
+
+/**
+ * Styling for the 'visible' mode's SENSITIVE_CLASS -- injected via JS
+ * (rather than a document_start CSS file like 'blurred' mode's blur.css)
+ * since there's no flash-of-content risk to guard against in this
+ * direction: 'visible' mode's whole premise is that images start visible,
+ * so it's fine for this rule to exist only once this script actually runs,
+ * at document_idle. Mirrors blur.css's amounts for a consistent look
+ * between modes.
+ */
+function injectSensitiveImageStyles(): void {
+  const style = document.createElement('style')
+  style.textContent = `
+    img.${SENSITIVE_CLASS} {
+      filter: blur(24px) !important;
+      transition: filter 0.15s ease;
+      cursor: pointer;
+    }
+    img.${SENSITIVE_CLASS}:hover {
+      filter: blur(6px) !important;
+    }
+  `
+  document.documentElement.appendChild(style)
+}
 
 // Caches in-flight/completed classifications by URL so repeated <img> tags
 // pointing at the same asset (common for icons, avatars, tracking pixels)
@@ -58,12 +100,12 @@ function releaseSlot(): void {
 }
 
 /**
- * Resolves to whether an image should stay blurred. Fails CLOSED: any
- * classification error or timeout resolves true (stay blurred) rather than
- * false — images are blurred by default (see blur.css) until actively
- * confirmed safe, and an inability to classify is not a confirmation of safety.
+ * Resolves to whether an image is sensitive. Fails CLOSED: any
+ * classification error or timeout resolves true (treat as sensitive)
+ * rather than false — an inability to classify is not a confirmation of
+ * safety, regardless of which startupDisplay mode is active.
  */
-async function shouldStayBlurred(imageUrl: string): Promise<boolean> {
+async function classifyImage(imageUrl: string): Promise<boolean> {
   const cached = classificationCache.get(imageUrl)
   if (cached) return cached
 
@@ -113,9 +155,11 @@ function isLikelyIcon(img: HTMLImageElement): boolean {
 function applyBlurIfNeeded(img: HTMLImageElement): void {
   const src = img.currentSrc || img.src
   if (!src) return
-  void shouldStayBlurred(src).then((staysBlurred) => {
-    if (!staysBlurred) {
-      img.classList.add(SAFE_CLASS) // confirmed safe -> reveal
+  void classifyImage(src).then((isSensitive) => {
+    if (currentMode === 'blurred') {
+      if (!isSensitive) img.classList.add(SAFE_CLASS) // confirmed safe -> reveal
+    } else if (isSensitive) {
+      img.classList.add(SENSITIVE_CLASS) // confirmed sensitive -> blur
     }
   })
 }
@@ -142,7 +186,12 @@ function observeImage(img: HTMLImageElement): void {
   if (observedImages.has(img)) return
   observedImages.add(img)
   if (isLikelyIcon(img)) {
-    img.classList.add(SAFE_CLASS)
+    // In 'blurred' mode, icons need SAFE_CLASS to override the CSS
+    // default's blur. In 'visible' mode there's nothing to do -- icons are
+    // already visible, and SENSITIVE_CLASS is only ever added on a
+    // confirmed-sensitive result, which icons never get since they're
+    // never classified in the first place.
+    if (currentMode === 'blurred') img.classList.add(SAFE_CLASS)
     return
   }
   intersectionObserver.observe(img)
@@ -170,14 +219,19 @@ function observeDom(): void {
 // Triggered by the right-click "Calm Scroll - Toggle Image Blur" context
 // menu item (background/index.ts), not a plain click on the image — this
 // message is background relaying that click, targeted at this one tab via
-// chrome.tabs.sendMessage rather than a broadcast.
+// chrome.tabs.sendMessage rather than a broadcast. Toggles whichever class
+// is meaningful for the current mode -- SAFE_CLASS's presence means
+// "revealed" in 'blurred' mode, SENSITIVE_CLASS's presence means "blurred"
+// in 'visible' mode, so toggling the right one always produces the correct
+// visual effect either way.
 chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
   if (message.type !== MessageType.ToggleImageBlur) return
+  const toggleClass = currentMode === 'blurred' ? SAFE_CLASS : SENSITIVE_CLASS
   let matched = 0
   document.querySelectorAll('img').forEach((img) => {
     if (img.src === message.imageUrl || img.currentSrc === message.imageUrl) {
       matched++
-      img.classList.toggle(SAFE_CLASS)
+      img.classList.toggle(toggleClass)
     }
   })
   if (matched === 0) {
@@ -189,9 +243,23 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
   }
 })
 
-function init(): void {
+async function init(): Promise<void> {
+  injectSensitiveImageStyles()
+
+  // Resolved before any scanning starts, so every image on this page is
+  // handled under a single consistent mode -- not needed for correctness in
+  // 'blurred' mode (its CSS default already applied at document_start,
+  // before this script runs at all) but is needed in 'visible' mode, where
+  // this is the only signal that an image should ever be blurred.
+  try {
+    const response = await sendMessage<GetSettingsResponse>({ type: MessageType.GetSettings })
+    currentMode = response?.settings.startupDisplay ?? DEFAULT_SETTINGS.startupDisplay
+  } catch (err) {
+    console.error('[calm-scroll/content] failed to fetch settings, using default mode:', err)
+  }
+
   scanExistingImages()
   observeDom()
 }
 
-init()
+void init()

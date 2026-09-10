@@ -9,13 +9,18 @@ in the browser; no network calls at runtime.
 ## Structure
 
 - `src/content` — scans the page DOM for `<img>` elements and requests
-  classification for each; blurring itself is a CSS default (`blur.css`,
-  injected at `document_start`) that this script only ever lifts once an
-  image is confirmed safe. Toggling a specific image's blur is a right-click
-  context menu action, not a click on the image (see `src/background`).
+  classification for each; what happens before that classification finishes
+  depends on the `startupDisplay` setting (see below) — by default images
+  display normally and this script blurs the ones confirmed sensitive; the
+  alternate mode blurs everything upfront via `public/content/blur.css`
+  (dynamically registered at `document_start` by `src/background`, not a
+  static `manifest.json` entry) and this script only ever lifts that.
+  Toggling a specific image's blur is a right-click context menu action,
+  not a click on the image (see `src/background`).
 - `src/background` — MV3 service worker; routes typed messages between all
-  other surfaces, owns settings storage, and creates/manages the offscreen
-  document on demand.
+  other surfaces, owns settings storage, creates/manages the offscreen
+  document on demand, and (de)registers `blur.css` to match the current
+  `startupDisplay` setting.
 - `src/offscreen` — offscreen document that hosts the on-device transformers.js
   vision model and runs classification off the service-worker thread
   (offscreen documents can't be declared in `manifest.json` — they're created
@@ -100,6 +105,37 @@ same-size accuracy upgrade exists** if this gets revisited.
   recalibrating `SIMILARITY_THRESHOLD` and rerunning the full
   category-accuracy suite from scratch, since thresholds are specific to
   the exact embedding space of the model in use.
+
+## Blur timing (`startupDisplay`)
+
+Configurable in the options page's "Blur timing" section
+(`ExtensionSettings.startupDisplay`, see `src/shared/categories.ts`'s doc
+comment for the full rationale):
+
+- **`'visible'` (default)** — images display normally; a sensitive one is
+  blurred once classification confirms it. Never delays or hides a benign
+  image, at the cost of a brief window where a genuinely sensitive image can
+  be visible while its classification is still in flight.
+- **`'blurred'`** — the original behavior: every image is blurred
+  immediately, before classification even starts, and is only revealed once
+  confirmed safe. No window where a sensitive image is visible, at the cost
+  of every image — including benign ones — being briefly blurred on load.
+
+Classification itself still fails **closed** in both modes (an error or
+timeout is treated as sensitive) — the setting only changes which state an
+image starts in and which class gets added on a positive result, not the
+fail-safe direction.
+
+**Mechanism**: `'blurred'` mode's document_start CSS
+(`public/content/blur.css`) is no longer a static `manifest.json`
+`content_scripts` entry, since it now only applies in one of the two modes.
+`src/background/index.ts`'s `syncBlurCssRegistration()` registers or
+unregisters it via `chrome.scripting.registerContentScripts`
+(the `scripting` permission) instead, keyed off the current setting, on
+install/startup and every settings change. Verified empirically
+(`tests/e2e/startup-display.spec.ts`) that this still blocks any flash of
+unblurred content in `'blurred'` mode — the dynamic registration has the
+same document_start guarantee a static entry would.
 
 ## Develop
 

@@ -24,12 +24,12 @@ Blurs spiders, snakes, insects, blood/gore, needles, clowns, and dogs — choose
 Runs entirely on your device: images are never uploaded anywhere, and the extension makes no network requests
 Adjustable sensitivity, so you control how cautious the blurring is
 Hover to peek at a blurred image, or right-click any image to toggle its blur on or off
-Every image starts blurred and is only revealed once it's confirmed safe — nothing slips through while the check is running
+Choose your blur timing: show images normally and blur the sensitive ones as they're found (the default), or blur everything up front and reveal each image once it's confirmed safe
 
 HOW TO USE
 1. Install the extension — it's on by default
 2. Click the toolbar icon to quickly enable/disable it, or open Settings for full control
-3. In Settings, choose which categories to blur and how sensitive detection should be
+3. In Settings, choose which categories to blur, how sensitive detection should be, and your preferred blur timing
 4. Right-click any image and choose "Calm Scroll - Toggle Image Blur" to reveal or re-hide it on the spot
 
 PRIVACY
@@ -78,6 +78,7 @@ faster than the popup alone.
 | `storage`      | permissions      | Stores the user's settings (enabled categories, sensitivity level, on/off toggle) locally via `chrome.storage.local`. Never synced or transmitted.                                                                                                                                                                                          |
 | `offscreen`    | permissions      | Hosts the on-device image-classification model in an offscreen document so inference runs off the service worker's thread and isn't killed by the service worker's idle timeout.                                                                                                                                                            |
 | `contextMenus` | permissions      | Adds the "Calm Scroll - Toggle Image Blur" right-click item on images, letting users manually reveal or re-hide a specific image.                                                                                                                                                                                                           |
+| `scripting`    | permissions      | Registers/unregisters the document-start stylesheet that blurs every image immediately, only when the user has selected the "blur everything first" timing option in Settings (off by default). No JavaScript is injected via this permission — CSS only.                                                                                   |
 | `<all_urls>`   | host_permissions | The extension blurs sensitive images on any website, not a fixed list — this is its whole purpose. It's also what lets the offscreen document's `fetch()` bypass CORS when downloading an arbitrary page's images for on-device classification; without it, images on sites that don't set a permissive CORS header would fail to classify. |
 
 ## Privacy & Data Use
@@ -155,6 +156,11 @@ https://github.com/pavgreen/calm-scroll
 - Cross-origin image fetches blocked by a host's own CORP/CSP headers fail
   closed (image stays blurred, never resolves) rather than falling back to
   any other signal.
+- At the default "show, then blur" timing, a sensitive image can be visible
+  for the brief window between page load and classification finishing —
+  this is the accepted tradeoff of that mode (see README's "Blur timing"
+  section), not a bug. Users who want zero exposure window can switch to
+  "blur, then show" in Settings.
 
 ### Rejection History
 

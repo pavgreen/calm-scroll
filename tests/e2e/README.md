@@ -26,13 +26,21 @@ here if either is missing.
 
 - **`classification.spec.ts`** — Wikipedia's "Spider" article, the stable
   reference page used throughout development. Verifies: a real spider photo
-  gets blurred and stays blurred at default settings; small icons are never
-  left blurred; disabling every category a specific image matches reveals it
-  (settings-driven behavior, not just classification — note the reference
-  image matches both "spiders" and "insects", a real zero-shot classifier
-  outcome, not a bug); disabling the extension entirely reveals everything.
-  These are the load-bearing tests — stable, deterministic-enough to trust
-  in CI. All 4 pass reliably (~1.5 min total).
+  ends up blurred at default settings (`startupDisplay: 'visible'` — starts
+  unblurred, becomes blurred once classification confirms it); small icons
+  are never blurred; disabling every category a specific image matches keeps
+  it unblurred (settings-driven behavior, not just classification — note the
+  reference image matches both "spiders" and "insects", a real zero-shot
+  classifier outcome, not a bug); disabling the extension entirely leaves
+  everything unblurred. These are the load-bearing tests — stable,
+  deterministic-enough to trust in CI. All 4 pass reliably (~30s total).
+- **`startup-display.spec.ts`** — the two `startupDisplay` modes
+  specifically: confirms `'blurred'` mode still blurs images immediately at
+  first paint (no flash) even though its CSS is now dynamically registered
+  via `chrome.scripting` rather than a static manifest entry; confirms
+  `'visible'` mode never does; confirms the right-click toggle still works
+  correctly in `'visible'` mode (it toggles a different class than
+  `'blurred'` mode does — see `content-script.ts`).
 - **`category-accuracy.spec.ts`** — one positive real-world reference image
   per phobia category (all 7), plus 3 clearly benign images (food, two
   landscapes) that must never match anything. Classifies directly against

@@ -44,6 +44,19 @@ export type CategorySettings = Record<PhobiaCategory, boolean>
 
 export type Sensitivity = 'low' | 'medium' | 'high'
 
+/**
+ * Controls what an image looks like before classification finishes:
+ * - 'visible' (default): images display normally; a sensitive one is
+ *   blurred once classification confirms it. Never delays/hides a benign
+ *   image, at the cost of a brief window where a genuinely sensitive image
+ *   can be visible while its classification is still in flight.
+ * - 'blurred': every image is blurred immediately (before classification
+ *   even starts) and is only revealed once confirmed safe. No window where
+ *   a sensitive image is visible, at the cost of every image -- including
+ *   benign ones -- being briefly blurred on load.
+ */
+export type StartupDisplay = 'visible' | 'blurred'
+
 export interface SiteListEntry {
   hostname: string
 }
@@ -52,6 +65,7 @@ export interface ExtensionSettings {
   enabled: boolean
   categories: CategorySettings
   sensitivity: Sensitivity
+  startupDisplay: StartupDisplay
   allowList: SiteListEntry[]
   denyList: SiteListEntry[]
 }
@@ -65,6 +79,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   enabled: true,
   categories: defaultCategorySettings(),
   sensitivity: 'medium',
+  startupDisplay: 'visible',
   allowList: [],
   denyList: [],
 }

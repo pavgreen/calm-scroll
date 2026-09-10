@@ -36,6 +36,26 @@
 
       <section class="card">
         <div class="card-header">
+          <h2>Blur timing</h2>
+          <p class="hint">Choose what images look like before they're checked.</p>
+        </div>
+        <div id="startup-display" class="segmented" role="radiogroup" aria-label="Blur timing">
+          <label
+            ><input type="radio" name="startup-display" value="visible" /><span
+              >Show, then blur</span
+            ></label
+          >
+          <label
+            ><input type="radio" name="startup-display" value="blurred" /><span
+              >Blur, then show</span
+            ></label
+          >
+        </div>
+        <p class="hint" id="startup-display-description"></p>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
           <h2>Allow list</h2>
           <p class="hint">Sites Calm Scroll never runs on.</p>
         </div>

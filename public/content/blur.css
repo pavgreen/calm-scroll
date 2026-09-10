@@ -1,0 +1,31 @@
+/*
+ * The "blurred" startupDisplay mode (see categories.ts's doc comment).
+ * Dynamically registered by background/index.ts via
+ * chrome.scripting.registerContentScripts at document_start -- NOT a static
+ * manifest.json content_scripts entry, since it now only applies when the
+ * user has this mode selected. Registration still targets document_start,
+ * so the effect is identical to a static entry when active: every image is
+ * blurred from the very first paint, before the page has even started
+ * loading images, let alone before content-script.ts (which runs later, at
+ * document_idle) could apply a class via JS. JS is only ever responsible
+ * for REMOVING this via the .calm-scroll-safe override, once an image is
+ * actively confirmed safe; it never applies the blur itself.
+ *
+ * Lives under public/ (verbatim-copied into dist/ by Vite) rather than
+ * src/content/ alongside content-script.ts: crxjs only auto-bundles content
+ * script files it discovers in manifest.json, and this one is no longer
+ * declared there.
+ */
+img {
+  filter: blur(24px) !important;
+  transition: filter 0.15s ease;
+  cursor: pointer;
+}
+
+img:hover {
+  filter: blur(6px) !important;
+}
+
+img.calm-scroll-safe {
+  filter: none !important;
+}
